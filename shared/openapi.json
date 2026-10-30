@@ -1,0 +1,4035 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hisaab Agent",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/ingest": {
+      "post": {
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Ingest",
+        "operationId": "ingest_invoices_ingest_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ingest_invoices_ingest_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoice_id}/confirm": {
+      "post": {
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Confirm",
+        "operationId": "confirm_invoices__invoice_id__confirm_post",
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ConfirmIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceStateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoice_id}/discard": {
+      "post": {
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Discard",
+        "operationId": "discard_invoices__invoice_id__discard_post",
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceStateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{invoice_id}/ask-supplier": {
+      "post": {
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Ask Supplier",
+        "operationId": "ask_supplier_invoices__invoice_id__ask_supplier_post",
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/queries/{query_id}/answer": {
+      "post": {
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Answer",
+        "operationId": "answer_queries__query_id__answer_post",
+        "parameters": [
+          {
+            "name": "query_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Query Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "List Merchants",
+        "description": "The three demo personas (Ramesh, Neha, Vikas), for the merchant switcher.",
+        "operationId": "list_merchants_merchants_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MerchantOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Merchants Merchants Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Get One",
+        "operationId": "get_one_merchants__merchant_id__get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/home": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Home",
+        "operationId": "home_merchants__merchant_id__home_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/dues": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Dues",
+        "operationId": "dues_merchants__merchant_id__dues_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "week",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuesOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/suppliers": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Suppliers",
+        "operationId": "suppliers_merchants__merchant_id__suppliers_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierSummaryOut"
+                  },
+                  "title": "Response Suppliers Merchants  Merchant Id  Suppliers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/suppliers/{supplier_id}/ledger": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Ledger",
+        "operationId": "ledger_merchants__merchant_id__suppliers__supplier_id__ledger_get",
+        "parameters": [
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/alerts": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Alerts",
+        "operationId": "alerts_merchants__merchant_id__alerts_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlertOut"
+                  },
+                  "title": "Response Alerts Merchants  Merchant Id  Alerts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/alerts/{alert_id}/resolve": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Resolve Alert",
+        "operationId": "resolve_alert_merchants__merchant_id__alerts__alert_id__resolve_post",
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Alert Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconcile/run": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Run Reconcile",
+        "operationId": "run_reconcile_reconcile_run_post",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/ims": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Ims",
+        "operationId": "ims_merchants__merchant_id__ims_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/ims/approve-all": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Ims Approve All",
+        "operationId": "ims_approve_all_merchants__merchant_id__ims_approve_all_post",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/ims/{entry_id}/override": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Ims Override",
+        "operationId": "ims_override_merchants__merchant_id__ims__entry_id__override_post",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Entry Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/forecast": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Forecast",
+        "operationId": "forecast_merchants__merchant_id__forecast_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 14,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/score": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Score",
+        "operationId": "score_merchants__merchant_id__score_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/consents": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Grant Consent",
+        "operationId": "grant_consent_merchants__merchant_id__consents_post",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/credit-offer": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Credit Offer",
+        "operationId": "credit_offer_merchants__merchant_id__credit_offer_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditOfferOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/credit-offer/{offer_id}/accept": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Accept Offer",
+        "operationId": "accept_offer_merchants__merchant_id__credit_offer__offer_id__accept_post",
+        "parameters": [
+          {
+            "name": "offer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Offer Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditOfferOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/register.csv": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Register",
+        "operationId": "register_merchants__merchant_id__register_csv_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/draft": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Draft",
+        "operationId": "draft_payments_draft_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{draft_id}/confirm": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Confirm",
+        "operationId": "confirm_payments__draft_id__confirm_post",
+        "parameters": [
+          {
+            "name": "draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Draft Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPaymentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRecordOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/cash": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Log Cash",
+        "operationId": "log_cash_payments_cash_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRecordOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/cash/{payment_id}/confirm": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Confirm Cash",
+        "operationId": "confirm_cash_payments_cash__payment_id__confirm_post",
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPaymentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRecordOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/cash/{payment_id}": {
+      "delete": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Cancel Cash",
+        "operationId": "cancel_cash_payments_cash__payment_id__delete",
+        "parameters": [
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/payments/{payment_id}/confirm-payee": {
+      "post": {
+        "tags": [
+          "payments"
+        ],
+        "summary": "Confirm Payee",
+        "operationId": "confirm_payee_merchants__merchant_id__payments__payment_id__confirm_payee_post",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "payment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Payment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPayeeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/chat": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Chat",
+        "operationId": "chat_agent_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/voice": {
+      "post": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Voice",
+        "operationId": "voice_agent_voice_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_voice_agent_voice_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/events": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Events",
+        "description": "Soundbox-style announcements (payment received, due tomorrow). The app polls this.",
+        "operationId": "events_merchants__merchant_id__events_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "After Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventOut"
+                  },
+                  "title": "Response Events Merchants  Merchant Id  Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/receivables": {
+      "get": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Receivables",
+        "operationId": "receivables_distributors__distributor_id__receivables_get",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReceivableOut"
+                  },
+                  "title": "Response Receivables Distributors  Distributor Id  Receivables Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/retailers/{retailer_id}": {
+      "get": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Retailer",
+        "operationId": "retailer_distributors__distributor_id__retailers__retailer_id__get",
+        "parameters": [
+          {
+            "name": "retailer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Retailer Id"
+            }
+          },
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivableOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/settlements": {
+      "get": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Settlements",
+        "operationId": "settlements_distributors__distributor_id__settlements_get",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettlementOut"
+                  },
+                  "title": "Response Settlements Distributors  Distributor Id  Settlements Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/invoices": {
+      "post": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Issue Invoice",
+        "operationId": "issue_invoice_distributors__distributor_id__invoices_post",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueInvoiceIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuedInvoiceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/reminders": {
+      "post": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Reminders",
+        "operationId": "reminders_distributors__distributor_id__reminders_post",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemindersIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemindersOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/reset": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Reset",
+        "operationId": "reset_demo_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/simulate-payment": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Simulate Payment",
+        "operationId": "simulate_payment_demo_simulate_payment_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulatePaymentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulatePaymentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/simulate-customer-payment": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Simulate Customer Payment",
+        "operationId": "simulate_customer_payment_demo_simulate_customer_payment_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateCustomerPaymentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/whatsapp": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Verify",
+        "operationId": "verify_webhooks_whatsapp_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Inbound",
+        "operationId": "inbound_webhooks_whatsapp_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlertOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "message_en": {
+            "type": "string",
+            "title": "Message En"
+          },
+          "message_hi": {
+            "type": "string",
+            "title": "Message Hi"
+          },
+          "invoice_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Id"
+          },
+          "supplier_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Id"
+          },
+          "payment_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "severity",
+          "message_en",
+          "message_hi",
+          "invoice_id",
+          "supplier_id",
+          "payment_id",
+          "status"
+        ],
+        "title": "AlertOut"
+      },
+      "AnswerIn": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer"
+        ],
+        "title": "AnswerIn"
+      },
+      "Body_ingest_invoices_ingest_post": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "app"
+          },
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id",
+          "file"
+        ],
+        "title": "Body_ingest_invoices_ingest_post"
+      },
+      "Body_voice_agent_voice_post": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          },
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id",
+          "file"
+        ],
+        "title": "Body_voice_agent_voice_post"
+      },
+      "CashIn": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          },
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id",
+          "supplier_id",
+          "amount"
+        ],
+        "title": "CashIn"
+      },
+      "ChatIn": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel",
+            "default": "app"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "history": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id",
+          "text"
+        ],
+        "title": "ChatIn"
+      },
+      "ChatOut": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ToolCallOut"
+            },
+            "type": "array",
+            "title": "Tool Calls"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "tool_calls",
+          "source"
+        ],
+        "title": "ChatOut"
+      },
+      "ConfirmIn": {
+        "properties": {
+          "corrections": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrections"
+          }
+        },
+        "type": "object",
+        "title": "ConfirmIn"
+      },
+      "ConfirmPayeeIn": {
+        "properties": {
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_id"
+        ],
+        "title": "ConfirmPayeeIn"
+      },
+      "ConfirmPaymentIn": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id"
+        ],
+        "title": "ConfirmPaymentIn"
+      },
+      "ConsentIn": {
+        "properties": {
+          "scope": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope"
+        ],
+        "title": "ConsentIn"
+      },
+      "ConsentOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "scope": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scope"
+          },
+          "granted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Granted At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "scope",
+          "granted_at",
+          "expires_at"
+        ],
+        "title": "ConsentOut"
+      },
+      "CreditOfferOut": {
+        "properties": {
+          "eligible": {
+            "type": "boolean",
+            "title": "Eligible"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "offer_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offer Id"
+          },
+          "limit": {
+            "type": "number",
+            "title": "Limit",
+            "default": 0
+          },
+          "rate_apr_min": {
+            "type": "number",
+            "title": "Rate Apr Min",
+            "default": 0
+          },
+          "rate_apr_max": {
+            "type": "number",
+            "title": "Rate Apr Max",
+            "default": 0
+          },
+          "tenure_days": {
+            "type": "integer",
+            "title": "Tenure Days",
+            "default": 0
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons",
+            "default": []
+          },
+          "illustrative": {
+            "type": "boolean",
+            "title": "Illustrative",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "eligible",
+          "reason"
+        ],
+        "title": "CreditOfferOut"
+      },
+      "DraftIn": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          },
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "bank"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id",
+          "supplier_id",
+          "amount"
+        ],
+        "title": "DraftIn"
+      },
+      "DraftOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "upi_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upi Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "supplier_id",
+          "amount",
+          "source",
+          "status",
+          "upi_link"
+        ],
+        "title": "DraftOut"
+      },
+      "DueItemOut": {
+        "properties": {
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "next_due": {
+            "type": "string",
+            "format": "date",
+            "title": "Next Due"
+          },
+          "invoice_nos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Invoice Nos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_id",
+          "supplier_name",
+          "amount",
+          "next_due",
+          "invoice_nos"
+        ],
+        "title": "DueItemOut"
+      },
+      "DuesOut": {
+        "properties": {
+          "period": {
+            "type": "string",
+            "title": "Period"
+          },
+          "total": {
+            "type": "number",
+            "title": "Total"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DueItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "total",
+          "items"
+        ],
+        "title": "DuesOut"
+      },
+      "DuplicateOut": {
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "invoice_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Invoice Date"
+          },
+          "paid_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice_id",
+          "invoice_no",
+          "invoice_date",
+          "paid_on"
+        ],
+        "title": "DuplicateOut"
+      },
+      "EventOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "EventOut"
+      },
+      "ForecastDayOut": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "inflow": {
+            "type": "number",
+            "title": "Inflow"
+          },
+          "outflow": {
+            "type": "number",
+            "title": "Outflow"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
+          },
+          "low": {
+            "type": "number",
+            "title": "Low"
+          },
+          "high": {
+            "type": "number",
+            "title": "High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "inflow",
+          "outflow",
+          "balance",
+          "low",
+          "high"
+        ],
+        "title": "ForecastDayOut"
+      },
+      "ForecastOut": {
+        "properties": {
+          "buffer": {
+            "type": "number",
+            "title": "Buffer"
+          },
+          "first_below_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Below Date"
+          },
+          "shortfall_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shortfall Date"
+          },
+          "shortfall_amount": {
+            "type": "number",
+            "title": "Shortfall Amount"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastDayOut"
+            },
+            "type": "array",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "buffer",
+          "first_below_date",
+          "shortfall_date",
+          "shortfall_amount",
+          "days"
+        ],
+        "title": "ForecastOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HomeOut": {
+        "properties": {
+          "merchant": {
+            "$ref": "#/components/schemas/MerchantOut"
+          },
+          "owe_this_week": {
+            "type": "number",
+            "title": "Owe This Week"
+          },
+          "suppliers_due_this_week": {
+            "type": "integer",
+            "title": "Suppliers Due This Week"
+          },
+          "alert_count": {
+            "type": "integer",
+            "title": "Alert Count"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "shortfall_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shortfall Date"
+          },
+          "shortfall_amount": {
+            "type": "number",
+            "title": "Shortfall Amount"
+          },
+          "forecast": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastDayOut"
+            },
+            "type": "array",
+            "title": "Forecast"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant",
+          "owe_this_week",
+          "suppliers_due_this_week",
+          "alert_count",
+          "score",
+          "shortfall_date",
+          "shortfall_amount",
+          "forecast"
+        ],
+        "title": "HomeOut"
+      },
+      "ImsEntryOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "invoice_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Invoice Date"
+          },
+          "taxable": {
+            "type": "number",
+            "title": "Taxable"
+          },
+          "tax": {
+            "type": "number",
+            "title": "Tax"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "reason_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason En"
+          },
+          "reason_hi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Hi"
+          },
+          "itc_risk": {
+            "type": "boolean",
+            "title": "Itc Risk"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "supplier_name",
+          "invoice_no",
+          "invoice_date",
+          "taxable",
+          "tax",
+          "action",
+          "reason_en",
+          "reason_hi",
+          "itc_risk",
+          "approved"
+        ],
+        "title": "ImsEntryOut"
+      },
+      "ImsMissingOut": {
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "reason_en": {
+            "type": "string",
+            "title": "Reason En"
+          },
+          "reason_hi": {
+            "type": "string",
+            "title": "Reason Hi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice_id",
+          "invoice_no",
+          "reason_en",
+          "reason_hi"
+        ],
+        "title": "ImsMissingOut"
+      },
+      "ImsOut": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ImsEntryOut"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "missing_from_ims": {
+            "items": {
+              "$ref": "#/components/schemas/ImsMissingOut"
+            },
+            "type": "array",
+            "title": "Missing From Ims"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "counts",
+          "entries",
+          "missing_from_ims"
+        ],
+        "title": "ImsOut"
+      },
+      "IngestOut": {
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice": {
+            "$ref": "#/components/schemas/Invoice"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "field_confidence": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Field Confidence"
+          },
+          "low_confidence_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Low Confidence Fields"
+          },
+          "duplicate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DuplicateOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice_id",
+          "invoice",
+          "issues",
+          "field_confidence",
+          "low_confidence_fields",
+          "duplicate",
+          "image_url"
+        ],
+        "title": "IngestOut"
+      },
+      "Invoice": {
+        "properties": {
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "supplier_gstin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Gstin"
+          },
+          "buyer_gstin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyer Gstin"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "invoice_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Invoice Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "place_of_supply": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Of Supply"
+          },
+          "line_items": {
+            "items": {
+              "$ref": "#/components/schemas/LineItem"
+            },
+            "type": "array",
+            "title": "Line Items"
+          },
+          "taxable_total": {
+            "type": "number",
+            "title": "Taxable Total"
+          },
+          "tax_total": {
+            "type": "number",
+            "title": "Tax Total"
+          },
+          "round_off": {
+            "type": "number",
+            "title": "Round Off",
+            "default": 0
+          },
+          "grand_total": {
+            "type": "number",
+            "title": "Grand Total"
+          },
+          "bill_type": {
+            "type": "string",
+            "enum": [
+              "gst_invoice",
+              "kachcha",
+              "credit_note",
+              "debit_note"
+            ],
+            "title": "Bill Type"
+          },
+          "field_confidence": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Field Confidence",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_name",
+          "invoice_no",
+          "invoice_date",
+          "line_items",
+          "taxable_total",
+          "tax_total",
+          "grand_total",
+          "bill_type"
+        ],
+        "title": "Invoice"
+      },
+      "InvoiceLineIn": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "hsn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn"
+          },
+          "qty": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Qty"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Rate"
+          },
+          "gst_rate": {
+            "type": "number",
+            "title": "Gst Rate",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "qty",
+          "rate"
+        ],
+        "title": "InvoiceLineIn"
+      },
+      "InvoiceStateOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "title": "Confirmed"
+          },
+          "grand_total": {
+            "type": "number",
+            "title": "Grand Total"
+          },
+          "amount_settled": {
+            "type": "number",
+            "title": "Amount Settled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "invoice_no",
+          "status",
+          "confirmed",
+          "grand_total",
+          "amount_settled"
+        ],
+        "title": "InvoiceStateOut"
+      },
+      "IssueInvoiceIn": {
+        "properties": {
+          "retailer_id": {
+            "type": "integer",
+            "title": "Retailer Id"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineIn"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "credit_days": {
+            "type": "integer",
+            "title": "Credit Days",
+            "default": 14
+          }
+        },
+        "type": "object",
+        "required": [
+          "retailer_id",
+          "lines"
+        ],
+        "title": "IssueInvoiceIn"
+      },
+      "IssueOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "message_en": {
+            "type": "string",
+            "title": "Message En"
+          },
+          "message_hi": {
+            "type": "string",
+            "title": "Message Hi"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "line_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message_en",
+          "message_hi"
+        ],
+        "title": "IssueOut"
+      },
+      "IssuedInvoiceOut": {
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "grand_total": {
+            "type": "number",
+            "title": "Grand Total"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice_id",
+          "invoice_no",
+          "grand_total",
+          "due_date"
+        ],
+        "title": "IssuedInvoiceOut"
+      },
+      "LedgerEntryOut": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "ref": {
+            "type": "string",
+            "title": "Ref"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "balance": {
+            "type": "number",
+            "title": "Balance"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "kind",
+          "ref",
+          "amount",
+          "balance",
+          "status"
+        ],
+        "title": "LedgerEntryOut"
+      },
+      "LedgerOut": {
+        "properties": {
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
+          },
+          "balance_due": {
+            "type": "number",
+            "title": "Balance Due"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LedgerEntryOut"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "open_issues": {
+            "items": {
+              "$ref": "#/components/schemas/AlertOut"
+            },
+            "type": "array",
+            "title": "Open Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_id",
+          "supplier_name",
+          "balance_due",
+          "entries",
+          "open_issues"
+        ],
+        "title": "LedgerOut"
+      },
+      "LineItem": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "hsn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hsn"
+          },
+          "qty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "taxable_value": {
+            "type": "number",
+            "title": "Taxable Value"
+          },
+          "gst_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gst Rate"
+          },
+          "cgst": {
+            "type": "number",
+            "title": "Cgst",
+            "default": 0
+          },
+          "sgst": {
+            "type": "number",
+            "title": "Sgst",
+            "default": 0
+          },
+          "igst": {
+            "type": "number",
+            "title": "Igst",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "description",
+          "taxable_value"
+        ],
+        "title": "LineItem"
+      },
+      "MerchantOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "gst_scheme": {
+            "type": "string",
+            "title": "Gst Scheme"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "role",
+          "gst_scheme",
+          "language"
+        ],
+        "title": "MerchantOut"
+      },
+      "OverrideIn": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "title": "Action"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "OverrideIn"
+      },
+      "PaymentRecordOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Paid At"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "title": "Confirmed"
+          },
+          "supplier_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "amount",
+          "mode",
+          "paid_at",
+          "confirmed",
+          "supplier_id"
+        ],
+        "title": "PaymentRecordOut"
+      },
+      "QueryOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "invoice_id"
+        ],
+        "title": "QueryOut"
+      },
+      "ReasonOut": {
+        "properties": {
+          "factor": {
+            "type": "string",
+            "title": "Factor"
+          },
+          "positive": {
+            "type": "boolean",
+            "title": "Positive"
+          },
+          "text_en": {
+            "type": "string",
+            "title": "Text En"
+          },
+          "text_hi": {
+            "type": "string",
+            "title": "Text Hi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "factor",
+          "positive",
+          "text_en",
+          "text_hi"
+        ],
+        "title": "ReasonOut"
+      },
+      "ReceivableOut": {
+        "properties": {
+          "retailer_id": {
+            "type": "integer",
+            "title": "Retailer Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "outstanding": {
+            "type": "number",
+            "title": "Outstanding"
+          },
+          "overdue_amount": {
+            "type": "number",
+            "title": "Overdue Amount"
+          },
+          "days_overdue": {
+            "type": "integer",
+            "title": "Days Overdue"
+          },
+          "reliability": {
+            "type": "number",
+            "title": "Reliability"
+          },
+          "suggested_limit": {
+            "type": "number",
+            "title": "Suggested Limit"
+          },
+          "reason_en": {
+            "type": "string",
+            "title": "Reason En"
+          },
+          "reason_hi": {
+            "type": "string",
+            "title": "Reason Hi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retailer_id",
+          "name",
+          "outstanding",
+          "overdue_amount",
+          "days_overdue",
+          "reliability",
+          "suggested_limit",
+          "reason_en",
+          "reason_hi"
+        ],
+        "title": "ReceivableOut"
+      },
+      "ReminderOut": {
+        "properties": {
+          "retailer_id": {
+            "type": "integer",
+            "title": "Retailer Id"
+          },
+          "retailer_name": {
+            "type": "string",
+            "title": "Retailer Name"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "days_overdue": {
+            "type": "integer",
+            "title": "Days Overdue"
+          },
+          "tone": {
+            "type": "string",
+            "title": "Tone"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retailer_id",
+          "retailer_name",
+          "amount",
+          "days_overdue",
+          "tone",
+          "text"
+        ],
+        "title": "ReminderOut"
+      },
+      "RemindersIn": {
+        "properties": {
+          "retailer_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retailer Ids"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "hi"
+          },
+          "send": {
+            "type": "boolean",
+            "title": "Send",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "RemindersIn"
+      },
+      "RemindersOut": {
+        "properties": {
+          "sent": {
+            "type": "boolean",
+            "title": "Sent"
+          },
+          "reminders": {
+            "items": {
+              "$ref": "#/components/schemas/ReminderOut"
+            },
+            "type": "array",
+            "title": "Reminders"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sent",
+          "reminders"
+        ],
+        "title": "RemindersOut"
+      },
+      "ScoreOut": {
+        "properties": {
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "factors": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Factors"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ReasonOut"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "factors",
+          "reasons"
+        ],
+        "title": "ScoreOut"
+      },
+      "SettlementOut": {
+        "properties": {
+          "collection_id": {
+            "type": "integer",
+            "title": "Collection Id"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "payer_name": {
+            "type": "string",
+            "title": "Payer Name"
+          },
+          "gross": {
+            "type": "number",
+            "title": "Gross"
+          },
+          "mdr": {
+            "type": "number",
+            "title": "Mdr"
+          },
+          "net": {
+            "type": "number",
+            "title": "Net"
+          },
+          "matched": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Matched"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "collection_id",
+          "received_at",
+          "payer_name",
+          "gross",
+          "mdr",
+          "net",
+          "matched",
+          "status"
+        ],
+        "title": "SettlementOut"
+      },
+      "SimulateCustomerPaymentIn": {
+        "properties": {
+          "merchant_id": {
+            "type": "integer",
+            "title": "Merchant Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount",
+            "default": 2500.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id"
+        ],
+        "title": "SimulateCustomerPaymentIn"
+      },
+      "SimulatePaymentIn": {
+        "properties": {
+          "payer_id": {
+            "type": "integer",
+            "title": "Payer Id"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name",
+            "default": "Sharma Traders"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount",
+            "default": 31500.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "payer_id"
+        ],
+        "title": "SimulatePaymentIn"
+      },
+      "SimulatePaymentOut": {
+        "properties": {
+          "gross": {
+            "type": "number",
+            "title": "Gross"
+          },
+          "mdr": {
+            "type": "number",
+            "title": "Mdr"
+          },
+          "net": {
+            "type": "number",
+            "title": "Net"
+          },
+          "matched": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Matched"
+          },
+          "reliability_before": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability Before"
+          },
+          "reliability_after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reliability After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gross",
+          "mdr",
+          "net",
+          "matched",
+          "reliability_before",
+          "reliability_after"
+        ],
+        "title": "SimulatePaymentOut"
+      },
+      "SupplierSummaryOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "balance_due": {
+            "type": "number",
+            "title": "Balance Due"
+          },
+          "next_due": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due"
+          },
+          "risk": {
+            "type": "string",
+            "title": "Risk"
+          },
+          "gstin_status": {
+            "type": "string",
+            "title": "Gstin Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "balance_due",
+          "next_due",
+          "risk",
+          "gstin_status"
+        ],
+        "title": "SupplierSummaryOut"
+      },
+      "ToolCallOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Arguments"
+          },
+          "result": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Result"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "arguments",
+          "result"
+        ],
+        "title": "ToolCallOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VoiceOut": {
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "language_code": {
+            "type": "string",
+            "title": "Language Code"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          },
+          "tool_calls": {
+            "items": {
+              "$ref": "#/components/schemas/ToolCallOut"
+            },
+            "type": "array",
+            "title": "Tool Calls"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcript",
+          "language_code",
+          "text",
+          "audio_url",
+          "tool_calls",
+          "source"
+        ],
+        "title": "VoiceOut"
+      }
+    }
+  }
+}

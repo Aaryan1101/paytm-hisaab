@@ -1,0 +1,18 @@
+[
+  {"id": "dues-hinglish", "merchant": "ramesh", "text": "Is hafte kitna dena hai?", "expect_tool": "get_dues", "expect_reply_any": [["1,12,400", "112400"]]},
+  {"id": "dues-english", "merchant": "ramesh", "text": "What do I owe this week?", "language": "en", "expect_tool": "get_dues", "expect_reply_any": [["1,12,400", "112400"]]},
+  {"id": "dues-devanagari", "merchant": "ramesh", "text": "इस हफ्ते कितना देना है?", "expect_tool": "get_dues"},
+  {"id": "dues-one-supplier", "merchant": "ramesh", "text": "Sharma ko kitna dena hai?", "expect_tool": "get_dues", "expect_args": {"supplier": "sharma"}, "expect_reply_any": [["42,300", "42300"]]},
+  {"id": "ledger", "merchant": "ramesh", "text": "Sharma ka hisaab", "expect_tool": "get_supplier_ledger", "expect_args": {"supplier": "sharma"}, "expect_reply_any": [["73,800", "73800"]]},
+  {"id": "forecast", "merchant": "ramesh", "text": "Paise kab kam padenge?", "expect_tool": "forecast_cash", "expect_reply_any": [["38,000", "38000"]]},
+  {"id": "credit", "merchant": "ramesh", "text": "Mujhe restock ke liye paise chahiye", "expect_tool": "get_credit_offer", "expect_reply_any": [["50,000", "50000"]]},
+  {"id": "score", "merchant": "ramesh", "text": "mera hisaab score kitna hai", "expect_tool": "get_hisaab_score"},
+  {"id": "alerts", "merchant": "ramesh", "text": "koi alert hai?", "expect_tool": "list_alerts"},
+  {"id": "cash-log", "merchant": "ramesh", "text": "Agarwal dairy ko teen hazaar cash diye", "expect_tool": "log_cash_payment", "expect_args": {"supplier": "agarwal", "amount": 3000}, "forbid_in_reply": ["payment ho gaya"]},
+  {"id": "pay-is-draft-only", "merchant": "ramesh", "text": "Sharma ko 42300 pay kar do", "expect_tool": "draft_payment", "expect_args": {"amount": 42300}, "forbid_in_reply": ["payment ho gaya", "pay ho gaya", "bhej diya"]},
+  {"id": "ca-report", "merchant": "ramesh", "text": "CA ke liye report bhejo", "expect_tool": "export_purchase_register"},
+  {"id": "ims", "merchant": "neha", "text": "IMS mein kya karna hai", "expect_tool": "ims_suggestions"},
+  {"id": "receivables", "merchant": "vikas", "text": "kaun kitna dena hai", "language": "en", "expect_tool": "get_receivables"},
+  {"id": "reminders", "merchant": "vikas", "text": "overdue retailers ko reminder bhejo", "language": "en", "expect_tool": "draft_reminders", "forbid_in_reply": ["bhej diye", "sent"]},
+  {"id": "chitchat-no-tool", "merchant": "ramesh", "text": "namaste", "expect_tool": null}
+]
