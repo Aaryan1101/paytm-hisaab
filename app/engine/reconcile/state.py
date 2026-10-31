@@ -18,6 +18,7 @@ class State:
         self.credit_applications: list[CreditApplication] = []
         self.alerts: list[AlertOut] = []
         self.fuzzy_suggestions: list[FuzzySuggestion] = []
+        self.credit_used: set[int] = set()  # credit notes already applied by an earlier pass
 
     def open_invoices(self, supplier_id: int | None = None) -> list[InvoiceIn]:
         out = [i for i in self.invoices.values()

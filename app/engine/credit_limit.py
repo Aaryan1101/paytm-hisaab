@@ -1,5 +1,7 @@
 """Distributor-side: reliability of a retailer and the credit limit to offer them."""
 from dataclasses import dataclass
+from datetime import date
+from statistics import mean, pstdev
 
 MIN_MULT, MAX_MULT = 0.5, 2.0
 SLOW_DAYS = 30  # average days-to-pay at or beyond this scores zero on speed
@@ -12,6 +14,7 @@ class RetailerStats:
     avg_monthly_purchase: float
     hisaab_score: int | None = None  # only if the retailer opted in
     invoices_paid: int = 0
+    order_regularity: float | None = None  # 0..1 how evenly they reorder; None when there are too few orders to tell
 
 
 @dataclass(frozen=True)
@@ -23,12 +26,28 @@ class LimitSuggestion:
     reason_hi: str
 
 
+def order_regularity(order_dates: list[date]) -> float | None:
+    """How evenly a retailer reorders: 1 minus the variation in the gaps between orders. Needs at least 3 orders."""
+    ds = sorted(order_dates)
+    gaps = [(y - x).days for x, y in zip(ds, ds[1:])]
+    if len(gaps) < 2 or mean(gaps) == 0:
+        return None
+    return max(0.0, min(1.0, 1 - pstdev(gaps) / mean(gaps)))
+
+
 def reliability(s: RetailerStats) -> float:
+    """Weighted blend of on-time rate, speed to pay, order regularity (if known) and the opt-in Hisaab Score."""
     speed = 0.0 if s.avg_days_to_pay is None else max(0.0, 1 - s.avg_days_to_pay / SLOW_DAYS)
-    if s.hisaab_score is None:
+    reg = s.order_regularity
+    norm = None if s.hisaab_score is None else (s.hisaab_score - 300) / 600
+    if reg is None and norm is None:
         score = 0.65 * s.on_time_rate + 0.35 * speed
+    elif reg is None:
+        score = 0.5 * s.on_time_rate + 0.3 * speed + 0.2 * norm
+    elif norm is None:
+        score = 0.55 * s.on_time_rate + 0.30 * speed + 0.15 * reg
     else:
-        score = 0.5 * s.on_time_rate + 0.3 * speed + 0.2 * (s.hisaab_score - 300) / 600
+        score = 0.45 * s.on_time_rate + 0.25 * speed + 0.10 * reg + 0.20 * norm
     return round(100 * max(0.0, min(1.0, score)), 1)
 
 

@@ -19,12 +19,14 @@ def reconcile_distributor(session: Session, distributor_id: int) -> None:
     if not inv_ids:
         return
     dropped: dict[int, float] = {}  # collection-based amounts being recomputed, per invoice
-    for m in session.exec(select(Match).where(Match.invoice_id.in_(inv_ids), Match.collection_id != None)).all():  # noqa: E711
+    for m in session.exec(select(Match).where(Match.invoice_id.in_(inv_ids), Match.collection_id != None,  # noqa: E711
+                                              Match.method != "manual")).all():  # confirmed matches are kept
         dropped[m.invoice_id] = dropped.get(m.invoice_id, 0.0) + m.amount_applied
         session.delete(m)
     session.flush()
     kept = list(session.exec(select(Match).where(Match.invoice_id.in_(inv_ids))).all())
     applied = _sum_by(kept, "invoice_id")
+    receipt_applied = _sum_by([m for m in kept if m.collection_id], "collection_id")
     paired_utrs = {u for u in session.exec(select(PaymentOut.utr).where(PaymentOut.utr != None)).all()}  # noqa: E711
     collections = [c for c in session.exec(select(CollectionIn).where(
         CollectionIn.merchant_id == distributor_id, CollectionIn.payer_merchant_id != None)).all()  # noqa: E711
@@ -32,7 +34,8 @@ def reconcile_distributor(session: Session, distributor_id: int) -> None:
     result = reconcile(
         [InvoiceIn(i.id, i.merchant_id, i.invoice_no, i.invoice_date, i.grand_total, applied.get(i.id, 0.0))
          for i in invoices],
-        [PaymentIn(c.id, c.amount, c.received_at.date(), supplier_id=c.payer_merchant_id) for c in collections], [])
+        [PaymentIn(c.id, c.amount, c.received_at.date(), supplier_id=c.payer_merchant_id,
+                   already_applied=receipt_applied.get(c.id, 0.0)) for c in collections], [])
     new = {}
     for m in result.matches:
         session.add(Match(invoice_id=m.invoice_id, collection_id=m.payment_id, amount_applied=m.amount, method=m.method,

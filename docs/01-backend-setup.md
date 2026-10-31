@@ -72,6 +72,8 @@ All settings are environment variables (read from `.env`). Defaults are in `app/
 | `SARVAM_DOCAI_TIMEOUT_S` | `90` | Max wait for a bill-reading job |
 | `SARVAM_CACHE_DIR` | `.cache/sarvam` | Every Sarvam response is cached by input hash (saves credits). Use a fresh dir for honest latency numbers |
 | `AGENT_ENGINE` | `graph` | `graph` = LangGraph with durable memory; `native` = the original hand-written loop |
+| `SCHEDULER_ENABLED` | `false` | Run the "bill due tomorrow" reminders and the Monday weekly digest in the background (see §6b) |
+| `SCHEDULER_INTERVAL_S` / `SCHEDULER_HOUR` | `900` / `9` | How often the loop looks, and the local hour after which daily jobs may run |
 | `AGENT_ROUTER_FIRST` | `false` | `true` runs the keyword router first and only uses the LLM to phrase the answer. A stage safety net |
 | `PUBLIC_BASE_URL` | `http://localhost:8000` | Used to build `audio_url` links. **Must be reachable by the client** (see Android guide) |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated browser origins allowed to call the API (the web dashboard) |
@@ -128,18 +130,29 @@ Key numbers to check after a reset: Ramesh owes **₹1,12,400** to **5** supplie
 | `source` | Meaning |
 |---|---|
 | `llm` | The model answered after calling tools; every figure was verified against tool results |
-| `router` | The model skipped a needed tool, so the keyword router ran it and the model phrased the result |
+| `router` | The model skipped a needed tool, **ignored something the user asked us to record** (a cash payment, a balance), or **dropped the supplier they named**, so the keyword router ran the right tool and the model phrased the result |
 | `template` | The model's reply was empty or the model was down; a fixed template answered (still correct) |
 | `guard` | The model's reply contained a figure the tools never returned, so a template replaced it |
 | `apology` | Nothing could answer (model down and the phrase is not a known intent) |
 
 - **Trace:** each reply includes `trace` (engine, path, per-step `ms` and tokens) and it is stored in `messages.trace_json`.
 
+## 6b. Proactive jobs
+
+Two scheduled jobs live in `app/jobs/`: **bill due tomorrow** (WhatsApp message + Soundbox announcement per supplier) and the **weekly
+payables digest**. Set `SCHEDULER_ENABLED=true` to run them in the background. They are idempotent (`notification_log` records every send),
+so restarts and overlapping runs never double-message. To run one by hand, or pretend it is another day:
+
+```bash
+curl -X POST 'localhost:8000/demo/run-due-reminders?on=2026-11-03'
+curl -X POST 'localhost:8000/demo/run-weekly-digest?on=2026-11-02'
+```
+
 ## 7. Tests, evals, tooling
 
 ```bash
-make test                                   # ~600 tests, ~80 s. SQLite in memory + fake Sarvam: no key, no network
-uv run python -m scripts.eval_agent         # 16 demo phrases against REAL Sarvam: tool choice, args, figures, safety
+make test                                   # ~720 tests, ~2 min. SQLite in memory + fake Sarvam: no key, no network
+uv run python -m scripts.eval_agent         # 18 demo phrases against REAL Sarvam: tool choice, args, figures, safety
 SARVAM_CACHE_DIR=/tmp/cold uv run python -m scripts.eval_agent   # same, but honest latency (no cache hits)
 uv run python -m scripts.probe_sarvam chat  # smoke-test one Sarvam call (also: tts | stt <wav> | doc <image>)
 make openapi                                # refresh shared/openapi.json
@@ -164,7 +177,7 @@ and are separate.
 - **Public URL:** WhatsApp (and phones on another network) need to reach your laptop over HTTPS. Use a tunnel:
   `cloudflared tunnel --url http://localhost:8000` or `ngrok http 8000`. Then set `PUBLIC_BASE_URL` to that URL and restart.
 - **Venue Wi-Fi:** use a phone hotspot for the backend laptop.
-- **Before going on stage:** `make reset`, then `uv run python -m scripts.eval_agent` to confirm all 16 phrases still pass.
+- **Before going on stage:** `make reset`, then `uv run python -m scripts.eval_agent` to confirm all 18 phrases still pass.
 - **Safety nets:** `AGENT_ROUTER_FIRST=true` makes the demo phrases deterministic; the response cache replays anything you
   already ran, so rehearse the exact script once.
 
@@ -179,6 +192,14 @@ app/channels/   outbound notifiers + the WhatsApp adapter
 app/api/        thin routers + typed schemas        app/seed/   demo data and planted scenarios
 evals/          demo-phrase dataset                 scripts/    eval, probe, test-webhook
 ```
+
+## 10b. What has been verified against the real Sarvam services
+
+- **Document AI on bills:** a printed GST invoice and a tilted, noisy, unevenly lit "counter photo" of it were both read correctly in about 6.5 s:
+  invoice number, dates, both GSTINs, every line (HSN, quantity, rate, GST rate) and the totals. Through the full pipeline the photo was matched to the
+  ledger's Sharma Traders and flagged as a duplicate of ST-2291 (S1).
+- **Not yet verified:** *handwritten* (kachcha) bills and real phone photos of printed bills; both need genuine samples.
+- **Agent, voice, memory:** the 18-phrase eval passes against live Sarvam (`python -m scripts.eval_agent`); voice round trips take 2-3 s.
 
 ## 11. Troubleshooting
 

@@ -9,10 +9,10 @@ from app.ai.extract import InvoiceExtractor
 from app.ai.invoice_mapper import ExtractionError
 from app.engine import gstin as gstin_engine
 from app.engine.issues import Issue
-from app.engine.validate import DUPLICATE_WINDOW_DAYS, validate_invoice
+from app.engine.validate import DUPLICATE_WINDOW_DAYS, duplicate_issue, supplier_status_issue, validate_invoice
 from app.models import InvoiceLineRow, InvoiceRow, Merchant, Supplier
 from app.models.schemas import Invoice
-from app.services import alert_service, invoice_loader, payment_dates
+from app.services import alert_service, payment_dates
 from app.services.errors import Unreadable
 from app.services.supplier_lookup import find_supplier
 from app.storage import MediaStore
@@ -26,6 +26,7 @@ class DuplicateInfo:
     invoice_no: str
     invoice_date: date
     paid_on: date | None
+    amount: float  # what the earlier bill came to (and what was paid, if paid_on is set)
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class IngestResult:
     low_confidence_fields: list[str]
     duplicate: DuplicateInfo | None
     image_url: str | None
+    supplier_name: str  # the supplier as the ledger knows them (the bill may print it differently)
 
 
 def ingest_invoice(session: Session, merchant_id: int, data: bytes, source: str, extractor: InvoiceExtractor,
@@ -50,9 +52,15 @@ def ingest_invoice(session: Session, merchant_id: int, data: bytes, source: str,
     if invoice.buyer_gstin is None:
         invoice = invoice.model_copy(update={"buyer_gstin": merchant.gstin})
 
-    issues = validate_invoice(invoice, invoice_loader.previous_invoices(session, merchant_id))
+    # Who the bill is from is settled first (GSTIN, then name); duplicates are judged against THAT supplier's ledger,
+    # not by comparing raw strings, because a bill reads "SHARMA TRADERS" while the ledger says "Sharma Traders".
     supplier = _resolve_supplier(session, merchant_id, invoice)
-    duplicate_row = _find_duplicate(session, merchant_id, supplier.id, invoice) if any(i.code == "possible_duplicate" for i in issues) else None
+    issues = validate_invoice(invoice)
+    if (risk := supplier_status_issue(supplier.gstin_status)) is not None:
+        issues.append(risk)
+    duplicate_row = _find_duplicate(session, merchant_id, supplier.id, invoice)
+    if duplicate_row is not None:
+        issues.append(duplicate_issue(duplicate_row.invoice_no, duplicate_row.invoice_date))
     conf = confidence.score_fields(invoice, issues, set(extraction.derived), extraction.handwritten)
     stored = media.save(data, "pdf" if data[:5] == b"%PDF-" else "jpg", "bills") if media else None
 
@@ -73,7 +81,7 @@ def ingest_invoice(session: Session, merchant_id: int, data: bytes, source: str,
                                 invoice_id=row.id, supplier_id=supplier.id)
     session.flush()
     return IngestResult(row.id, invoice, issues, conf, confidence.low_confidence(conf, invoice),
-                        _duplicate_info(session, duplicate_row), stored.url if stored else None)
+                        _duplicate_info(session, duplicate_row), stored.url if stored else None, supplier.name)
 
 
 def _resolve_supplier(session: Session, merchant_id: int, inv: Invoice) -> Supplier:
@@ -103,4 +111,4 @@ def _find_duplicate(session: Session, merchant_id: int, supplier_id: int, inv: I
 def _duplicate_info(session: Session, row: InvoiceRow | None) -> DuplicateInfo | None:
     if row is None:
         return None
-    return DuplicateInfo(row.id, row.invoice_no, row.invoice_date, payment_dates.last_payment_dates(session, [row.id]).get(row.id))
+    return DuplicateInfo(row.id, row.invoice_no, row.invoice_date, payment_dates.last_payment_dates(session, [row.id]).get(row.id), row.grand_total)

@@ -1,6 +1,6 @@
 """Orchestrates the reconciliation passes in spec order (8.2). Pure: data in, result out."""
-from app.engine.reconcile import (pass_exact, pass_many_to_one, pass_partial, pass_reference, pass_short_payment,
-                                  supplier_resolver)
+from app.engine.reconcile import (pass_exact, pass_linked_credit, pass_many_to_one, pass_partial, pass_reference,
+                                  pass_short_payment, supplier_resolver)
 from app.engine.reconcile.state import CLOSE, State
 from app.engine.reconcile.types import (CreditNoteIn, FuzzySuggestion, InvoiceIn, PaymentIn, ReconcileResult,
                                         SupplierRef)
@@ -10,6 +10,7 @@ def reconcile(invoices: list[InvoiceIn], payments: list[PaymentIn], suppliers: l
               credit_notes: list[CreditNoteIn] | None = None) -> ReconcileResult:
     state = State(invoices, payments)
     _resolve_suppliers(state, suppliers)
+    pass_linked_credit.run(state, credit_notes or [])
     pass_reference.run(state)
     pass_exact.run(state)
     pass_many_to_one.run(state)

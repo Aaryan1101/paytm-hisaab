@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.schemas import Invoice
 
@@ -20,6 +20,7 @@ class DuplicateOut(BaseModel):
     invoice_no: str
     invoice_date: date
     paid_on: date | None
+    amount: float
 
 
 class IngestOut(BaseModel):
@@ -30,6 +31,7 @@ class IngestOut(BaseModel):
     low_confidence_fields: list[str]
     duplicate: DuplicateOut | None
     image_url: str | None
+    supplier_name: str  # as the ledger knows them
 
 
 class ConfirmIn(BaseModel):
@@ -54,3 +56,14 @@ class QueryOut(BaseModel):
 
 class AnswerIn(BaseModel):
     answer: str
+
+
+class CreditNoteRequestIn(BaseModel):
+    amount: float = Field(gt=0)
+
+
+class CreditNoteOut(BaseModel):
+    id: int
+    invoice_id: int | None
+    amount: float
+    status: str  # expected (requested, not yet issued) | received | applied

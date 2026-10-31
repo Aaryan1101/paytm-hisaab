@@ -91,3 +91,41 @@ def test_unknown_payee_stays_unmatched():
 def test_mdr_rules():
     assert mdr_for(42300) == 169.2 and net_of_mdr(42300) == 42130.8
     assert mdr_for(2000) == 0 and mdr_for(500000) == 300 and mdr_for(42300, exempt=True) == 0
+
+
+# ---- credit notes tied to a bill (pass 0)
+def test_received_note_reduces_an_unpaid_bill():
+    note = CreditNoteIn(9, supplier_id=1, amount=2000, status="received", against_invoice_id=1)
+    r = reconcile([inv(1, 10_000)], [pay(1, 8_000, supplier_id=1)], SUPPLIERS, [note])
+    assert [m.method for m in r.matches] == ["exact"] and r.invoice_status[1] == "paid"
+    assert r.credit_applications[0].amount == 2000 and r.alerts == []
+
+
+def test_received_note_alone_leaves_the_remainder_still_owed():
+    note = CreditNoteIn(9, 1, 2000, "received", 1)
+    r = reconcile([inv(1, 10_000)], [], SUPPLIERS, [note])
+    assert r.invoice_status[1] == "part_paid" and r.unpaid_invoice_ids == [1]  # part-settled by the note, 8,000 still owed
+    assert r.credit_applications[0].amount == 2000
+
+
+def test_note_larger_than_the_bill_is_capped():
+    note = CreditNoteIn(9, 1, 50_000, "received", 1)
+    r = reconcile([inv(1, 10_000)], [], SUPPLIERS, [note])
+    assert r.credit_applications[0].amount == 10_000 and r.invoice_status[1] == "paid"
+
+
+def test_expected_note_is_not_applied_to_an_unpaid_bill():
+    r = reconcile([inv(1, 10_000)], [], SUPPLIERS, [CreditNoteIn(9, 1, 2000, "expected", 1)])
+    assert r.credit_applications == [] and r.invoice_status[1] == "open"
+
+
+def test_applied_notes_are_reapplied_every_run():
+    note = CreditNoteIn(9, 1, 2300, "applied", 1)
+    r = reconcile([inv(1, 42_300)], [pay(1, 40_000, supplier_id=1)], SUPPLIERS, [note])
+    assert r.invoice_status[1] == "paid" and r.alerts == []
+
+
+def test_a_note_is_never_applied_twice():
+    note = CreditNoteIn(9, 1, 2300, "received", 1)
+    r = reconcile([inv(1, 42_300)], [pay(1, 40_000, supplier_id=1)], SUPPLIERS, [note])
+    assert len(r.credit_applications) == 1

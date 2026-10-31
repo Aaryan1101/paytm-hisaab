@@ -135,15 +135,15 @@ class GraphAgent:
             results = _this_turn_results(msgs)
             last_ai = msgs[-1] if msgs and isinstance(msgs[-1], AIMessage) else None
             content = ((last_ai.content if last_ai and not last_ai.tool_calls else "") or "").strip() if not turn.llm_failed else ""
-            if results:
+            if results and not router.needs_router(route, [(t.name, t.arguments) for t in turn.traces]):
                 if not content or not grounding.is_grounded(content, results, user_text):
                     turn.source = "template" if not content else "guard"
                     turn.reply = templates.render(turn.traces[-1].name, turn.traces[-1].result, language, channel)
                 else:
                     turn.source, turn.reply = "llm", content
                 return _replace_last(last_ai, turn.reply)
-            if route:  # the model answered a data question without a tool (or failed): do not trust it for numbers
-                return self._via_route(ctx, route, state, system, user_text, language, channel, turn)
+            if route:  # no tool, a failed model, or it dropped a fact to record or a supplier to scope to: the router decides
+                return self._via_route(ctx, route, state, system, user_text, language, channel, turn, tools)
             if content:
                 turn.source, turn.reply = "llm", content
                 return {}
@@ -151,7 +151,7 @@ class GraphAgent:
             return {"messages": [AIMessage(turn.reply)]}
 
         def routed(state: State) -> dict:
-            return self._via_route(ctx, route, state, system, user_text, language, channel, turn)
+            return self._via_route(ctx, route, state, system, user_text, language, channel, turn, tools)
 
         g = StateGraph(State)
         for name, fn in (("llm", llm), ("tools", run_tools), ("finalize", finalize), ("routed", routed)):
@@ -163,7 +163,7 @@ class GraphAgent:
         g.add_edge("routed", END)
         return g.compile(checkpointer=self._checkpointer)
 
-    def _via_route(self, ctx, route, state, system, user_text, language, channel, turn: _Turn) -> dict:
+    def _via_route(self, ctx, route, state, system, user_text, language, channel, turn: _Turn, tools) -> dict:
         """Run the routed tool ourselves, then let the model phrase the result (or fall back to a template)."""
         with turn.trace.timed("tool", route.tool):
             result = registry.execute(route.tool, route.args, ctx)
@@ -175,7 +175,11 @@ class GraphAgent:
         try:
             window = trim_messages([*state["messages"], call, tool_msg], max_tokens=WINDOW, token_counter=len, strategy="last", start_on="human")
             with turn.trace.timed("llm", "phrase"):
-                phrased = (self._model.invoke([SystemMessage(system), *window]).content or "").strip()
+                writer = self._model.bind_tools(tools, tool_choice="none")  # Sarvam needs the tools declared alongside tool results
+                answer = writer.invoke([SystemMessage(system), *window])
+                phrased = (answer.content or "").strip()
+                usage = answer.usage_metadata or {}
+                turn.trace.steps[-1].input_tokens, turn.trace.steps[-1].output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
         except Exception:
             log.exception("phrasing call failed")
         if phrased and grounding.is_grounded(phrased, [result], user_text):

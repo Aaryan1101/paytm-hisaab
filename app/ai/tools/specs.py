@@ -25,6 +25,8 @@ MERCHANT_SPECS = [
           {"invoice_id": {"type": "integer"}, "amount": {"type": "number"}}, ["invoice_id", "amount"]),
     _tool("forecast_cash", "14-day cash forecast with the day and size of any shortfall.",
           {"days": {"type": "integer", "description": "Horizon in days, default 14"}}),
+    _tool("set_cash_balance", "Record how much cash or bank balance the merchant has right now, so the cash forecast starts from it.",
+          {"amount": {"type": "number", "description": "Current balance in INR"}}, ["amount"]),
     _tool("get_hisaab_score", "The merchant's Hisaab Score (300-900) and the top reasons behind it."),
     _tool("get_credit_offer", "Whether the merchant is eligible for a working-capital credit offer, and its size.",
           {"purpose": {"type": "string"}}),

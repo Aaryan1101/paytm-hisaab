@@ -63,14 +63,17 @@ class HisaabChatModel(BaseChatModel):
         return "hisaab-sarvam"
 
     def bind_tools(self, tools, *, tool_choice=None, **kwargs):
-        return self.bind(tools=[convert_to_openai_tool(t) for t in tools], **kwargs)
+        """`tool_choice="none"` declares the tools (Sarvam requires that whenever the conversation holds tool results)
+        while forbidding the model from calling any: used to phrase a result already fetched."""
+        return self.bind(tools=[convert_to_openai_tool(t) for t in tools], tool_choice=tool_choice, **kwargs)
 
     def _generate(self, messages: list[BaseMessage], stop=None, run_manager=None, **kwargs) -> ChatResult:
         wire = [to_wire(m) for m in messages]
-        tools = kwargs.get("tools")
+        tools, choice = kwargs.get("tools"), kwargs.get("tool_choice")
         full = getattr(self.port, "complete_full", None)
+        extra = {"tool_choice": choice} if choice else {}
         if full is not None:
-            result = full(wire, tools=tools, temperature=self.temperature, max_tokens=self.max_tokens)
+            result = full(wire, tools=tools, temperature=self.temperature, max_tokens=self.max_tokens, **extra)
         else:  # ports without usage reporting (test fakes)
-            result = {"message": self.port.complete(wire, tools=tools, temperature=self.temperature, max_tokens=self.max_tokens), "usage": None}
+            result = {"message": self.port.complete(wire, tools=tools, temperature=self.temperature, max_tokens=self.max_tokens, **extra), "usage": None}
         return ChatResult(generations=[ChatGeneration(message=from_wire(result["message"], result.get("usage")))])

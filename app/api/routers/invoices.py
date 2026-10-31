@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlmodel import Session
 
 from app.api.deps import get_container, merchant_or_404
-from app.api.schemas.invoices import (AnswerIn, ConfirmIn, DuplicateOut, IngestOut, InvoiceStateOut, IssueOut,
+from app.api.schemas.invoices import (AnswerIn, ConfirmIn, CreditNoteOut, CreditNoteRequestIn, DuplicateOut, IngestOut, InvoiceStateOut, IssueOut,
                                       QueryOut)
 from app.container import Container
 from app.db import get_session
 from app.models import InvoiceRow, SupplierQuery
-from app.services import ingest_service, invoice_service, query_service
+from app import clock
+from app.services import credit_note_service, ingest_service, invoice_service, query_service
 from app.services.errors import Invalid
 
 router = APIRouter(tags=["invoices"])
@@ -38,7 +39,8 @@ def ingest(merchant_id: int = Form(...), source: str = Form("app"), file: Upload
         issues=[IssueOut(code=i.code, severity=i.severity, message_en=i.message_en, message_hi=i.message_hi,
                          field=i.field, line_index=i.line_index) for i in r.issues],
         duplicate=DuplicateOut(invoice_id=r.duplicate.invoice_id, invoice_no=r.duplicate.invoice_no,
-                               invoice_date=r.duplicate.invoice_date, paid_on=r.duplicate.paid_on) if r.duplicate else None)
+                               invoice_date=r.duplicate.invoice_date, paid_on=r.duplicate.paid_on, amount=r.duplicate.amount) if r.duplicate else None,
+        supplier_name=r.supplier_name)
 
 
 @router.post("/invoices/{invoice_id}/confirm", response_model=InvoiceStateOut)
@@ -69,3 +71,12 @@ def answer(query_id: int, body: AnswerIn, session: Session = Depends(get_session
     q = query_service.answer_query(session, container.notifier(session), query_id, body.answer)
     session.commit()
     return _query(q)
+
+
+@router.post("/invoices/{invoice_id}/request-credit-note", response_model=CreditNoteOut)
+def request_credit_note(invoice_id: int, merchant_id: int, body: CreditNoteRequestIn, session: Session = Depends(get_session),
+                        container: Container = Depends(get_container)):
+    """One-tap "ask the supplier for a credit note". Asking twice for the same bill returns the same request."""
+    note = credit_note_service.request_credit_note(session, container.notifier(session), merchant_id, invoice_id, body.amount, clock.today())
+    session.commit()
+    return CreditNoteOut(id=note.id, invoice_id=note.against_invoice_id, amount=note.amount, status=note.status)

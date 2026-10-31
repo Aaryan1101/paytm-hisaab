@@ -1,7 +1,7 @@
 # Web integration guide (distributor dashboard) + full API reference
 
 For the Next.js / TypeScript dashboard used by the distributor (**Sharma Traders**, merchant id `3`). Part 1 is how to
-integrate; Part 2 is the reference for **every endpoint** in the backend (43 operations), because the same API also powers
+integrate; Part 2 is the reference for **every endpoint** in the backend (54 operations), because the same API also powers
 the Android app and WhatsApp.
 
 Prerequisite: the backend is running ([setup guide](01-backend-setup.md)). Live, interactive docs are at `/docs`.
@@ -86,9 +86,10 @@ export async function api<T>(path: string, init?: RequestInit & { json?: unknown
 | Dashboard page | Calls | Notes |
 |---|---|---|
 | **Receivables** | `GET /distributors/3/receivables` | Already sorted: most overdue first. Show `reliability` as a badge, `suggested_limit`, and `reason_en`/`reason_hi` as the tooltip |
-| **Retailer detail** | `GET /distributors/3/retailers/{id}` + `GET /distributors/3/settlements` (filter by `payer_name`) | There is no per-retailer invoice list endpoint yet: show the summary row and that retailer's receipts |
-| **Settlements** | `GET /distributors/3/settlements` | Show `gross`, `mdr` (own column), `net`, and `matched[]`. `status` is `matched` or `unmatched` |
-| **Reminders** | `POST /distributors/3/reminders` with `send:false` to preview, then again with `send:true` and the chosen `retailer_ids` | Drafts are AI-written in Hindi/English with the tone picked from days overdue (`friendly`, `polite`, `firm`, `final`) |
+| **Retailer detail** | `GET /distributors/3/retailers/{id}` | One call returns the summary, that retailer's `invoices`, their `receipts` and their unanswered `open_queries`. Actions: **Answer a query** → `POST /queries/{id}/answer`; **Issue a credit note** → `POST /distributors/3/credit-notes` |
+| **Settlements** | `GET /distributors/3/settlements` | Show `gross`, `mdr` (own column), `net`, and `matched[]`. `status` is `matched` or `unmatched`. A matched invoice with `confirmed:false` gets a **Confirm?** chip → `POST /distributors/3/matches/{match_id}/confirm` (list them all with `GET /distributors/3/matches/pending`) |
+| **Reminders** | `POST /distributors/3/reminders` with `send:false` to preview, let the user **edit** any message, then `send:true` with the chosen `retailer_ids` and the edited `texts` | Drafts are AI-written in Hindi/English with the tone picked from days overdue (`friendly`, `polite`, `firm`, `final`) |
+| **Inbox of questions** | `GET /distributors/3/queries` | Everything retailers have asked (for example, “is this a duplicate?”) that is still unanswered |
 | **New invoice** | `POST /distributors/3/invoices` | Lands in the retailer's ledger and WhatsApp immediately, already confirmed (matching becomes exact) |
 | **Assistant panel** | `POST /agent/chat` with `merchant_id: 3` | Ask "kaun kitna dena hai?" etc. Render `text`; optionally show `tool_calls` for transparency |
 | **Live payment banner** | poll `GET /merchants/3/events?after_id=` every 2–3 s | Each event is a soundbox-style line, e.g. `Rs 31,500 prapt hue` |
@@ -168,7 +169,7 @@ One merchant (same shape). `404` if unknown.
 Everything the app's Home screen needs in one call.
 ```json
 {"merchant": {"id":1,"name":"Ramesh General Store","role":"retailer","gst_scheme":"composition","language":"hi"},
- "owe_this_week": 112400.0, "suppliers_due_this_week": 5, "alert_count": 2, "score": 819,
+ "owe_this_week": 112400.0, "cash_balance": 18442.96, "suppliers_due_this_week": 5, "alert_count": 2, "score": 819,
  "shortfall_date": "2026-11-05", "shortfall_amount": 38000.0,
  "forecast": [{"day":"2026-11-01","inflow":17119.11,"outflow":5168.98,"balance":30393.09,"low":27381.48,"high":33404.71}]}
 ```
@@ -220,6 +221,7 @@ Open alerts, optionally filtered by `type`.
 | `hsn_rate_mismatch` | Line's GST rate differs from the usual rate for its HSN code | Review the line |
 | `wrong_tax_type` | IGST charged within a state (or CGST/SGST across states) | Review |
 | `total_mismatch`, `line_total_mismatch`, `tax_computed_wrong` | Bill maths does not add up | Review |
+| `supplier_risk` | A scanned bill is from a supplier whose GSTIN is cancelled (`high`) or who is not filing returns (`warn`) | Talk to the supplier; input tax credit is at risk |
 | `gstin_risk` | IMS: supplier GSTIN cancelled | Talk to the supplier |
 | `missing_from_ims` | IMS: bill exists but the supplier has not filed it | Chase the supplier |
 
@@ -232,6 +234,16 @@ reconciliation re-runs.)
 ### `POST /merchants/{id}/payments/{payment_id}/confirm-payee`
 Body `{"supplier_id": 1}`. Confirms who an unfamiliar payee was; the name is saved as an alias so it resolves next time and
 the `confirm_payee` alert closes. Returns `{"ok": true}`.
+
+### `GET /merchants/{id}/matches/pending`
+Payment-to-bill matches the engine was less than 90% sure about (the spec's **"Confirm?"** chip), least sure first.
+```json
+[{"match_id":62,"invoice_id":61,"invoice_no":"ST-2250","counterparty":"Sharma Traders","amount":40000.0,"method":"partial","confidence":0.8,"when":"2026-10-09T11:00:00"}]
+```
+`method`: `reference | exact | many_to_one | partial`. Matches made through a fuzzy payee name are capped at 0.85, so they appear here too.
+
+### `POST /merchants/{id}/matches/{match_id}/confirm`
+The user agrees with the match. It becomes permanent: re-running reconciliation never undoes it. Returns `{"ok": true}`; `404` if the match is not this merchant's.
 
 ### `POST /reconcile/run?merchant_id=*`
 Re-runs matching of payments to bills (also happens automatically after every bill/payment change).
@@ -253,14 +265,18 @@ Read a bill photo or PDF. Fields: `merchant_id` (int), `file` (jpg/png/pdf, ≤ 
              "message_hi":"Yeh bill ST-2291 (2026-10-12) ka duplicate lag raha hai.","field":"invoice_no","line_index":null}],
  "field_confidence": {"supplier_name":0.95,"invoice_no":0.95,"grand_total":0.95,"supplier_gstin":0.95},
  "low_confidence_fields": [],
- "duplicate": {"invoice_id":60,"invoice_no":"ST-2291","invoice_date":"2026-10-12","paid_on":"2026-10-12"},
- "image_url": "http://localhost:8000/media/bills/….jpg"}
+ "duplicate": {"invoice_id":60,"invoice_no":"ST-2291","invoice_date":"2026-10-12","paid_on":"2026-10-12","amount":18640.0},
+ "image_url": "http://localhost:8000/media/bills/….jpg",
+ "supplier_name": "Sharma Traders"}
 ```
 - `bill_type`: `gst_invoice | kachcha | credit_note | debit_note` (`kachcha` = handwritten / non-GST).
 - **Review screen:** highlight every field named in `low_confidence_fields` (confidence below 0.8; handwritten bills score
   0.75 so they always ask). Highlight the line named by `issues[].line_index`.
 - `duplicate` is non-null when the bill matches one already filed; `paid_on` says when that one was paid (`null` if unpaid).
   A duplicate is stored as `disputed` and never enters dues unless the user says "new bill".
+- `supplier_name` is the supplier **as your ledger knows them** (a bill may print `SHARMA TRADERS`). Use it for headings and buttons. A bill is matched to a supplier by GSTIN first, then by name, and duplicates are judged against that supplier's ledger.
+- `duplicate.amount` is what the earlier bill came to; with `paid_on` set it is also what was paid. Quote it, not the new bill's total.
+- Tax printed only in the totals block (very common) is checked at the document level, so it does not raise per-line warnings.
 - `image_url` is **private**: bill images are not served over HTTP. Keep the picture you captured on the device.
 - `422 unreadable` if invoice number, date, total or supplier could not be found.
 
@@ -278,6 +294,13 @@ Marks the bill `disputed` and removes it from the ledger. Same response shape.
 
 ### `POST /invoices/{invoice_id}/ask-supplier?merchant_id=*`
 Messages the supplier's account (WhatsApp) asking about the bill. Returns `{"id":1,"status":"open","invoice_id":268,"answer":null}`.
+
+### `POST /invoices/{invoice_id}/request-credit-note?merchant_id=*`
+One-tap "ask the supplier for a credit note". Body `{"amount": 2300}` (must be > 0). Asking twice for the same bill returns the same request. The supplier's account is messaged.
+```json
+{"id":3,"invoice_id":61,"amount":2300.0,"status":"expected"}
+```
+`status`: `expected` (requested, not yet issued) | `received` | `applied` (issued and counted against the bill).
 
 ### `POST /queries/{query_id}/answer`
 Body `{"answer": "duplicate" | "new_bill"}`. The supplier's answer flows back: `duplicate` discards the bill, `new_bill`
@@ -320,11 +343,11 @@ Composition-scheme merchants get `409 not_applicable`.
 
 ### `GET /merchants/{id}/ims?month=2026-10*`
 ```json
-{"month":"2026-10","counts":{"accept":19,"reject":2,"pending":4},
- "entries":[{"id":1,"supplier_name":"Khatri Oil Traders","invoice_no":"KOT-632","invoice_date":"2026-10-01",
-   "taxable":26476.18,"tax":1323.82,"action":"accept","reason_en":"Bill and GST portal match.",
+{"month":"2026-10","counts":{"accept":52,"reject":2,"pending":7},
+ "entries":[{"id":1,"supplier_name":"Mehra Oils","invoice_no":"MO-651","invoice_date":"2026-10-01",
+   "taxable":11142.86,"tax":557.14,"action":"accept","reason_en":"Bill and GST portal match.",
    "reason_hi":"Bill aur GST portal match.","itc_risk":false,"approved":false}],
- "missing_from_ims":[{"invoice_id":108,"invoice_no":"TCC-578","reason_en":"Supplier has not filed this bill in GSTR-1; chase them.",
+ "missing_from_ims":[{"invoice_id":272,"invoice_no":"SD-297","reason_en":"Supplier has not filed this bill in GSTR-1; chase them.",
    "reason_hi":"Supplier ne GSTR-1 mein nahi daala; unse poochhein."}]}
 ```
 `action`: `accept | reject | pending`. `itc_risk: true` means input tax credit is at risk (cancelled supplier GSTIN).
@@ -346,6 +369,9 @@ Records the current suggestions as the merchant's decisions **in Hisaab only**. 
 ```
 `first_below_date` = first day under the ₹10,000 safety buffer; `shortfall_date` = the day of the lowest balance;
 `shortfall_amount` = buffer minus that lowest balance (extra cash needed). Plot `balance` with `low`/`high` as a shaded band.
+
+### `PUT /merchants/{id}/cash-balance`
+The merchant tells us today's cash/bank balance; the forecast starts from it. Body `{"amount": 40000}` → `{"cash_balance": 40000.0}`. The same thing works in chat ("mere paas 40000 cash hai").
 
 ### `GET /merchants/{id}/score`
 Hisaab Score, 300-900, explainable.
@@ -403,16 +429,48 @@ Soundbox-style announcements, oldest first: `[{"id":4,"text":"Rs 2,500 prapt hue
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/distributors/{id}/receivables` | – | `Receivable[]` (most overdue first) |
-| GET | `/distributors/{id}/retailers/{retailer_id}` | – | One `Receivable`; `404` if that retailer has no bills from you |
+| GET | `/distributors/{id}/retailers/{retailer_id}` | – | A `Receivable` plus `invoices`, `receipts` and `open_queries` (below); `404` if that retailer has no bills from you |
 | GET | `/distributors/{id}/settlements` | – | `Settlement[]`, newest first |
+| GET | `/distributors/{id}/queries` | – | Open retailer questions across all retailers. Answer with `POST /queries/{id}/answer` |
+| GET | `/distributors/{id}/matches/pending` | – | Receipt-to-bill matches the engine was unsure about (same shape as the retailer's, with `counterparty` = payer) |
+| POST | `/distributors/{id}/matches/{match_id}/confirm` | – | `{"ok": true}`. Confirmed matches are permanent |
 | POST | `/distributors/{id}/invoices` | `{"retailer_id":1,"lines":[{"description":"Tea 250g","hsn":"0902","qty":100,"rate":120,"gst_rate":5}],"credit_days":14}` | `{"invoice_id":268,"invoice_no":"ST-2310","grand_total":12600.0,"due_date":"2026-11-14"}` |
-| POST | `/distributors/{id}/reminders` | `{"retailer_ids":[36],"language":"hi","send":false}` | `{"sent":false,"reminders":[{"retailer_id":36,"retailer_name":"…","amount":116000.0,"days_overdue":50,"tone":"final","text":"Namaste …"}]}` |
+| POST | `/distributors/{id}/credit-notes` | `{"retailer_id":1,"invoice_id":61,"amount":2000}` | `{"credit_note_id":3,"invoice_id":61,"amount":2000.0,"status":"applied"}` |
+| POST | `/distributors/{id}/reminders` | `{"retailer_ids":[36],"language":"hi","send":false,"texts":{"36":"my edited message"}}` | `{"sent":false,"reminders":[{"retailer_id":36,"retailer_name":"…","amount":116000.0,"days_overdue":50,"tone":"final","text":"Namaste …"}]}` |
 
 - Non-distributor ids return `404`. `qty`/`rate` must be > 0; `gst_rate` defaults to 5; CGST+SGST vs IGST is chosen automatically
   from the two GSTINs.
-- `retailer_ids: null` drafts for every overdue retailer. With `send:true` the messages are delivered over WhatsApp when it is configured; otherwise they are only recorded in the conversation log.
+- **Credit notes:** the amount cannot exceed what is still owed on the bill (`422`). It reduces the retailer's dues immediately, fulfils
+  any request the retailer made for that bill, and notifies them.
+- **Reminders:** `retailer_ids: null` drafts for every overdue retailer. `texts` maps a retailer id to your edited message; it replaces the
+  AI draft for that retailer in both the preview and the send. Every key must be one of the drafted retailers and each text 1-1,000
+  characters, otherwise `422`. With `send:true` the messages are delivered over WhatsApp when it is configured; otherwise they are only
+  recorded in the conversation log.
 - A `Receivable` is `{retailer_id, name, outstanding, overdue_amount, days_overdue, reliability, suggested_limit, reason_en, reason_hi}`.
-  `reliability` is 0-100 from on-time rate and days-to-pay; `suggested_limit` = average monthly purchase × a 0.5-2.0 multiplier.
+  `reliability` (0-100) blends on-time rate, days-to-pay, how regularly they reorder and, if they opted in, their Hisaab Score;
+  `suggested_limit` = average monthly purchase × a 0.5-2.0 multiplier.
+
+### Retailer detail
+
+```json
+{"retailer_id":1,"name":"Ramesh General Store","outstanding":73800.0,"overdue_amount":0.0,"days_overdue":0,"reliability":74.8,
+ "suggested_limit":152000.0,"reason_en":"Pays in 10 days on average, 89% paid on time over 9 invoices","reason_hi":"…",
+ "invoices":[{"invoice_id":69,"invoice_no":"ST-2309","invoice_date":"2026-10-29","due_date":"2026-11-19","grand_total":12860.0,
+              "amount_settled":0.0,"status":"open","source":"whatsapp"}],
+ "receipts":[ /* Settlement objects for this retailer */ ],
+ "open_queries":[{"query_id":1,"retailer_id":1,"retailer_name":"Ramesh General Store","invoice_id":60,
+                  "invoice_no":"ST-2302","text":"Ramesh General Store ne bill #ST-2302 par sawaal poocha hai","created_at":"2026-10-31T10:12:00"}]}
+```
+
+### Settlement
+
+```json
+{"collection_id":276,"received_at":"2026-10-31T00:00:00","payer_id":1,"payer_name":"Ramesh General Store",
+ "gross":31500.0,"mdr":126.0,"net":31374.0,"status":"matched",
+ "matched":[{"invoice_no":"ST-2308","amount":18640.0,"match_id":70,"confidence":0.85,"confirmed":false},
+            {"invoice_no":"ST-2309","amount":12860.0,"match_id":71,"confidence":0.85,"confirmed":false}]}
+```
+`confirmed:false` (confidence below 0.9) is the cue for a **Confirm?** chip.
 
 ## 2.10 Demo controls
 
@@ -421,23 +479,40 @@ Soundbox-style announcements, oldest first: `[{"id":4,"text":"Rs 2,500 prapt hue
 | POST | `/demo/reset` | – | Restores the seed (~0.5 s). `{"ok":true}` |
 | POST | `/demo/simulate-payment` | `{"payer_id":1,"supplier_name":"Sharma Traders","amount":31500}` | Ramesh pays the distributor over UPI: both ledgers reconcile and Vikas's soundbox announces it |
 | POST | `/demo/simulate-customer-payment` | `{"merchant_id":1,"amount":2500}` | A customer pays the merchant's QR: the soundbox chimes (`{"collection_id":277,"amount":2500.0}`) |
+| POST | `/demo/run-due-reminders?on=2026-11-03` | – | Sends the "bill due tomorrow" messages and Soundbox announcements as if today were `on` (default: the app's today). Returns `{"sent":[{"merchant_id":1,"kind":"due_tomorrow","text":"Sharma Traders ka bill kal due hai, ₹42,300 (ST-2302)."}]}` |
+| POST | `/demo/run-weekly-digest?on=2026-11-02` | – | Sends the weekly payables digest now. Once per merchant per ISO week, so a second call the same week returns `{"sent":[]}` |
 
 `simulate-payment` returns
-`{"gross":31500.0,"mdr":126.0,"net":31374.0,"matched":[{"invoice_no":"ST-2308","amount":18640.0},{"invoice_no":"ST-2309","amount":12860.0}],"reliability_before":80.7,"reliability_after":83.7}`.
+`{"gross":31500.0,"mdr":126.0,"net":31374.0,"matched":[{"invoice_no":"ST-2308","amount":18640.0},{"invoice_no":"ST-2309","amount":12860.0}],"reliability_before":74.8,"reliability_after":77.3}`.
 
-## 2.11 Webhooks
+The two `run-*` endpoints are what the background scheduler runs automatically when `SCHEDULER_ENABLED=true` (daily after
+`SCHEDULER_HOUR`, digest on Mondays). Sending is idempotent: nobody is messaged twice for the same bill or week. Use `on=` to
+"fast-forward" the date on stage.
+
+## 2.11 Metrics
+
+### `GET /metrics/extraction-accuracy?merchant_id=`
+The pitch-slide number: how often merchants left the AI's key fields (invoice number, totals) unchanged. `merchant_id` is optional.
+```json
+{"accuracy": 0.93, "bills": 12, "fields": 46}
+```
+`accuracy` is `null` until at least one AI-read bill has been confirmed. Seeded bills have no raw reading, so they are not counted.
+
+## 2.12 Webhooks
 
 `GET|POST /webhooks/whatsapp` is called by Meta, not by your client. See the [WhatsApp guide](04-whatsapp-integration.md).
 
 ---
 
-## Endpoint index (43)
+## Endpoint index (54)
 
 `/agent/chat` · `/agent/voice` · `/demo/reset` · `/demo/simulate-payment` · `/demo/simulate-customer-payment` ·
-`/distributors/{id}/invoices` · `…/receivables` · `…/reminders` · `…/retailers/{rid}` · `…/settlements` · `/health` ·
-`/invoices/ingest` · `/invoices/{id}/ask-supplier` · `…/confirm` · `…/discard` · `/merchants` · `/merchants/{id}` ·
-`…/alerts` · `…/alerts/{aid}/resolve` · `…/consents` · `…/credit-offer` · `…/credit-offer/{oid}/accept` · `…/dues` ·
-`…/events` · `…/forecast` · `…/home` · `…/ims` · `…/ims/approve-all` · `…/ims/{eid}/override` ·
-`…/payments/{pid}/confirm-payee` · `…/register.csv` · `…/score` · `…/suppliers` · `…/suppliers/{sid}/ledger` ·
-`/payments/cash` · `/payments/cash/{id}` (DELETE) · `/payments/cash/{id}/confirm` · `/payments/draft` ·
-`/payments/{draft_id}/confirm` · `/queries/{id}/answer` · `/reconcile/run` · `/webhooks/whatsapp` (GET, POST)
+`/demo/run-due-reminders` · `/demo/run-weekly-digest` · `/distributors/{id}/invoices` · `…/credit-notes` · `…/matches/pending` ·
+`…/matches/{mid}/confirm` · `…/queries` · `…/receivables` · `…/reminders` · `…/retailers/{rid}` · `…/settlements` · `/health` ·
+`/invoices/ingest` · `/invoices/{id}/ask-supplier` · `…/confirm` · `…/discard` · `…/request-credit-note` · `/merchants` ·
+`/merchants/{id}` · `…/alerts` · `…/alerts/{aid}/resolve` · `…/cash-balance` (PUT) · `…/consents` · `…/credit-offer` ·
+`…/credit-offer/{oid}/accept` · `…/dues` · `…/events` · `…/forecast` · `…/home` · `…/ims` · `…/ims/approve-all` ·
+`…/ims/{eid}/override` · `…/matches/pending` · `…/matches/{mid}/confirm` · `…/payments/{pid}/confirm-payee` · `…/register.csv` ·
+`…/score` · `…/suppliers` · `…/suppliers/{sid}/ledger` · `/metrics/extraction-accuracy` · `/payments/cash` ·
+`/payments/cash/{id}` (DELETE) · `/payments/cash/{id}/confirm` · `/payments/draft` · `/payments/{draft_id}/confirm` ·
+`/queries/{id}/answer` · `/reconcile/run` · `/webhooks/whatsapp` (GET, POST)

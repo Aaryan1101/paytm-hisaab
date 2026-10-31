@@ -15,15 +15,64 @@ class ReceivableOut(BaseModel):
     reason_hi: str
 
 
+class MatchedInvoiceOut(BaseModel):
+    invoice_no: str
+    amount: float
+    match_id: int
+    confidence: float
+    confirmed: bool  # false = "Confirm?" chip
+
+
 class SettlementOut(BaseModel):
     collection_id: int
     received_at: datetime
+    payer_id: int
     payer_name: str
     gross: float
     mdr: float
     net: float
-    matched: list[dict]
+    matched: list[MatchedInvoiceOut]
     status: str  # matched | unmatched
+
+
+class RetailerInvoiceOut(BaseModel):
+    invoice_id: int
+    invoice_no: str
+    invoice_date: date
+    due_date: date | None
+    grand_total: float
+    amount_settled: float
+    status: str
+    source: str
+
+
+class OpenQueryOut(BaseModel):
+    query_id: int
+    retailer_id: int
+    retailer_name: str
+    invoice_id: int
+    invoice_no: str
+    text: str
+    created_at: datetime
+
+
+class RetailerDetailOut(ReceivableOut):
+    invoices: list[RetailerInvoiceOut]
+    receipts: list[SettlementOut]
+    open_queries: list[OpenQueryOut]
+
+
+class CreditNoteIssueIn(BaseModel):
+    retailer_id: int
+    invoice_id: int
+    amount: float = Field(gt=0)
+
+
+class CreditNoteIssuedOut(BaseModel):
+    credit_note_id: int
+    invoice_id: int | None
+    amount: float
+    status: str
 
 
 class InvoiceLineIn(BaseModel):
@@ -51,6 +100,7 @@ class RemindersIn(BaseModel):
     retailer_ids: list[int] | None = None
     language: str = "hi"
     send: bool = False
+    texts: dict[int, str] | None = None  # retailer_id -> edited message; replaces the AI draft for that retailer
 
 
 class ReminderOut(BaseModel):

@@ -7,7 +7,7 @@ from app.ai.money_format import inr
 from app.ai.tools.context import ToolContext
 from app.engine.validate import validate_invoice
 from app.models import InvoiceRow, Match
-from app.services import (credit_note_service, credit_service, dues_service, forecast_service, ims_service,
+from app.services import (merchant_service, credit_note_service, credit_service, dues_service, forecast_service, ims_service,
                           invoice_loader, ledger_service, payment_service, register_export_service, score_service)
 from app.services.errors import Invalid, NotFound
 from app.services.supplier_lookup import find_supplier
@@ -81,6 +81,11 @@ def forecast_cash(ctx: ToolContext, days: int = 14) -> dict:
     return out
 
 
+def set_cash_balance(ctx: ToolContext, amount: float) -> dict:
+    balance = merchant_service.set_cash_balance(ctx.session, ctx.merchant_id, float(amount))
+    return {"cash_balance": balance, "cash_balance_display": inr(balance), "note": "The cash forecast now starts from this balance."}
+
+
 def get_hisaab_score(ctx: ToolContext) -> dict:
     r = score_service.get_score(ctx.session, ctx.merchant_id, ctx.today).result
     return {"score": r.score, "reasons": [{"text_en": x.text_en, "text_hi": x.text_hi, "positive": x.positive} for x in r.reasons]}
@@ -128,5 +133,5 @@ def _parse_date(s: str) -> date:
 
 
 HANDLERS = {f.__name__: f for f in (get_dues, get_supplier_ledger, list_alerts, explain_invoice, log_cash_payment,
-                                    request_credit_note, forecast_cash, get_hisaab_score, get_credit_offer,
+                                    request_credit_note, forecast_cash, set_cash_balance, get_hisaab_score, get_credit_offer,
                                     draft_payment, ims_suggestions, export_purchase_register)}

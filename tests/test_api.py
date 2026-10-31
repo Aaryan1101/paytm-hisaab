@@ -394,3 +394,10 @@ def test_cors_does_not_allow_other_origins(api):
     c = api[0]
     r = c.get("/merchants", headers={"Origin": "http://evil.example"})
     assert "access-control-allow-origin" not in r.headers
+
+
+def test_ingest_response_names_the_ledger_supplier_and_the_earlier_amount(api):
+    c, _, ctx, fakes = api
+    fakes.docai.result = {**s1_bill(ctx.vikas.gstin), "supplier_name": "SHARMA TRADERS"}
+    r = upload(c, ctx.ramesh.id).json()
+    assert r["supplier_name"] == "Sharma Traders" and r["duplicate"]["amount"] == 18_640

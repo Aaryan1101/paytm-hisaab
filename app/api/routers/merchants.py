@@ -3,14 +3,14 @@ from sqlmodel import Session, select
 
 from app import clock
 from app.api.deps import get_merchant
-from app.api.schemas.merchants import (AlertOut, ConsentIn, ConsentOut, CreditOfferOut, DueItemOut, DuesOut,
+from app.api.schemas.merchants import (AlertOut, CashBalanceIn, CashBalanceOut, ConsentIn, ConsentOut, CreditOfferOut, DueItemOut, DuesOut,
                                        ForecastDayOut, ForecastOut, HomeOut, ImsEntryOut, ImsMissingOut, ImsOut,
-                                       LedgerEntryOut, LedgerOut, MerchantOut, OverrideIn, ReasonOut, ScoreOut,
+                                       LedgerEntryOut, LedgerOut, MerchantOut, OverrideIn, PendingMatchOut, ReasonOut, ScoreOut,
                                        SupplierSummaryOut)
 from app.db import get_session
 from app.models import Alert, Merchant, Supplier
 from app.services import (alert_service, credit_service, dues_service, forecast_service, ims_service, ledger_service,
-                          reconcile_service, register_export_service, score_service)
+                          match_service, merchant_service, reconcile_service, register_export_service, score_service)
 from app.services.errors import Invalid, NotFound
 
 router = APIRouter(tags=["merchants"])
@@ -48,7 +48,7 @@ def home(m: Merchant = Depends(get_merchant), session: Session = Depends(get_ses
     today = clock.today()
     dues = dues_service.get_dues(session, m.id, today, "week")
     f = forecast_service.get_forecast(session, m.id, today)
-    return HomeOut(merchant=_merchant(m), owe_this_week=dues.total, suppliers_due_this_week=len(dues.items),
+    return HomeOut(merchant=_merchant(m), owe_this_week=dues.total, cash_balance=m.opening_balance, suppliers_due_this_week=len(dues.items),
                    alert_count=len(alert_service.list_alerts(session, m.id)),
                    score=score_service.get_score(session, m.id, today).result.score,
                    shortfall_date=f.shortfall_date, shortfall_amount=f.shortfall_amount, forecast=_forecast(f).days)
@@ -181,3 +181,29 @@ def accept_offer(offer_id: int, m: Merchant = Depends(get_merchant), session: Se
 def register(month: str, m: Merchant = Depends(get_merchant), session: Session = Depends(get_session)):
     name, text = register_export_service.purchase_register_csv(session, m.id, month)
     return Response(text, media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+def _pending(p) -> PendingMatchOut:
+    return PendingMatchOut(match_id=p.match_id, invoice_id=p.invoice_id, invoice_no=p.invoice_no, counterparty=p.counterparty,
+                           amount=p.amount, method=p.method, confidence=p.confidence, when=p.when)
+
+
+@router.get("/merchants/{merchant_id}/matches/pending", response_model=list[PendingMatchOut])
+def pending_matches(m: Merchant = Depends(get_merchant), session: Session = Depends(get_session)):
+    """Payment-to-bill matches the engine was less than 90% sure about: show each with a "Confirm?" button."""
+    return [_pending(p) for p in match_service.pending_for_merchant(session, m.id)]
+
+
+@router.post("/merchants/{merchant_id}/matches/{match_id}/confirm")
+def confirm_match(match_id: int, m: Merchant = Depends(get_merchant), session: Session = Depends(get_session)):
+    match_service.confirm_for_merchant(session, m.id, match_id)
+    session.commit()
+    return {"ok": True}
+
+
+@router.put("/merchants/{merchant_id}/cash-balance", response_model=CashBalanceOut)
+def set_cash_balance(body: CashBalanceIn, m: Merchant = Depends(get_merchant), session: Session = Depends(get_session)):
+    """Tell us today's cash/bank balance; the cash forecast starts from it."""
+    balance = merchant_service.set_cash_balance(session, m.id, body.amount)
+    session.commit()
+    return CashBalanceOut(cash_balance=balance)

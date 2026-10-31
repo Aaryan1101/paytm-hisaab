@@ -19,3 +19,7 @@ class SimulatePaymentOut(BaseModel):
 class SimulateCustomerPaymentIn(BaseModel):
     merchant_id: int
     amount: float = 2_500.0
+
+
+class JobRunOut(BaseModel):
+    sent: list[dict]

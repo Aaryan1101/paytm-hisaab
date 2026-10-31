@@ -6,7 +6,7 @@ SHORT_PAY_MAX_SHARE = 0.10  # gaps up to 10% of the bill look like a short payme
 
 
 def run(state: State, credit_notes: list[CreditNoteIn]) -> None:
-    used: set[int] = set()
+    used: set[int] = set(state.credit_used)  # notes the linked-credit pass already applied
     for inv in state.invoices.values():
         gap = state.inv_left[inv.id]
         paid_something = gap < inv.total - CLOSE

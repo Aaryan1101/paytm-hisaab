@@ -116,7 +116,7 @@ Codes worth special UI: `consent_required` (open the consent screen), `unreadabl
 @Serializable data class ForecastDay(val day: String, val inflow: Double, val outflow: Double, val balance: Double, val low: Double, val high: Double)
 
 @Serializable data class Home(
-    val merchant: Merchant, val oweThisWeek: Double, val suppliersDueThisWeek: Int, val alertCount: Int, val score: Int,
+    val merchant: Merchant, val oweThisWeek: Double, val cashBalance: Double, val suppliersDueThisWeek: Int, val alertCount: Int, val score: Int,
     val shortfallDate: String? = null, val shortfallAmount: Double = 0.0, val forecast: List<ForecastDay>,
 )
 
@@ -141,10 +141,11 @@ Codes worth special UI: `consent_required` (open the consent screen), `unreadabl
     val taxTotal: Double, val roundOff: Double = 0.0, val grandTotal: Double, val billType: String,
 )
 @Serializable data class Issue(val code: String, val severity: String, val messageEn: String, val messageHi: String, val field: String? = null, val lineIndex: Int? = null)
-@Serializable data class Duplicate(val invoiceId: Int, val invoiceNo: String, val invoiceDate: String, val paidOn: String? = null)
+@Serializable data class Duplicate(val invoiceId: Int, val invoiceNo: String, val invoiceDate: String, val paidOn: String? = null, val amount: Double)
 @Serializable data class Ingest(
     val invoiceId: Int, val invoice: Invoice, val issues: List<Issue>, val fieldConfidence: Map<String, Double>,
     val lowConfidenceFields: List<String>, val duplicate: Duplicate? = null, val imageUrl: String? = null,
+    val supplierName: String,   // the supplier as the ledger knows them: use this in headings and buttons
 )
 @Serializable data class InvoiceState(val id: Int, val invoiceNo: String, val status: String, val confirmed: Boolean, val grandTotal: Double, val amountSettled: Double)
 
@@ -175,6 +176,12 @@ Codes worth special UI: `consent_required` (open the consent screen), `unreadabl
 @Serializable data class ApproveAllOut(val approved: Int, val note: String)
 @Serializable data class Consent(val id: Int, val scope: List<String>, val grantedAt: String, val expiresAt: String)
 @Serializable data class QueryOut(val id: Int, val status: String, val invoiceId: Int, val answer: String? = null)
+@Serializable data class CreditNote(val id: Int, val invoiceId: Int? = null, val amount: Double, val status: String)   // expected | received | applied
+@Serializable data class PendingMatch(
+    val matchId: Int, val invoiceId: Int, val invoiceNo: String, val counterparty: String, val amount: Double,
+    val method: String, val confidence: Double, val `when`: String,
+)
+@Serializable data class CashBalance(val cashBalance: Double)
 
 // Request bodies (field names become snake_case on the wire via the naming strategy)
 @Serializable data class MerchantBody(val merchantId: Int)
@@ -183,6 +190,8 @@ Codes worth special UI: `consent_required` (open the consent screen), `unreadabl
 @Serializable data class ConsentIn(val scope: List<String>)
 @Serializable data class ConfirmIn(val corrections: JsonObject? = null)
 @Serializable data class ConfirmPayeeIn(val supplierId: Int)
+@Serializable data class CreditNoteRequestIn(val amount: Double)
+@Serializable data class CashBalanceIn(val amount: Double)
 @Serializable data class OverrideIn(val action: String)             // accept | reject | pending
 @Serializable data class ChatIn(val merchantId: Int, val text: String, val channel: String = "app", val language: String? = null)
 ```
@@ -199,12 +208,16 @@ interface HisaabApi {
     @GET("merchants/{id}/alerts") suspend fun alerts(@Path("id") id: Int, @Query("type") type: String? = null): List<Alert>
     @POST("merchants/{id}/alerts/{aid}/resolve") suspend fun resolveAlert(@Path("id") id: Int, @Path("aid") aid: Int): Alert
     @POST("merchants/{id}/payments/{pid}/confirm-payee") suspend fun confirmPayee(@Path("id") id: Int, @Path("pid") pid: Int, @Body body: ConfirmPayeeIn)
+    @GET("merchants/{id}/matches/pending") suspend fun pendingMatches(@Path("id") id: Int): List<PendingMatch>       // the "Confirm?" chips
+    @POST("merchants/{id}/matches/{mid}/confirm") suspend fun confirmMatch(@Path("id") id: Int, @Path("mid") mid: Int)
+    @PUT("merchants/{id}/cash-balance") suspend fun setCashBalance(@Path("id") id: Int, @Body body: CashBalanceIn): CashBalance
 
     @Multipart @POST("invoices/ingest")
     suspend fun ingest(@Part("merchant_id") merchantId: RequestBody, @Part("source") source: RequestBody, @Part file: MultipartBody.Part): Ingest
     @POST("invoices/{iid}/confirm") suspend fun confirmInvoice(@Path("iid") iid: Int, @Query("merchant_id") merchantId: Int, @Body body: ConfirmIn = ConfirmIn()): InvoiceState
     @POST("invoices/{iid}/discard") suspend fun discardInvoice(@Path("iid") iid: Int, @Query("merchant_id") merchantId: Int): InvoiceState
     @POST("invoices/{iid}/ask-supplier") suspend fun askSupplier(@Path("iid") iid: Int, @Query("merchant_id") merchantId: Int): QueryOut
+    @POST("invoices/{iid}/request-credit-note") suspend fun requestCreditNote(@Path("iid") iid: Int, @Query("merchant_id") merchantId: Int, @Body body: CreditNoteRequestIn): CreditNote
 
     @GET("merchants/{id}/forecast") suspend fun forecast(@Path("id") id: Int, @Query("days") days: Int = 14): Forecast
     @GET("merchants/{id}/score") suspend fun score(@Path("id") id: Int): Score
@@ -241,10 +254,10 @@ interface HisaabApi {
 | **Home** | `home(id)` (one call) | "This week you owe **₹1,12,400** to **5** suppliers", the `forecast` line chart with the `low`/`high` band shaded, shortfall banner when `shortfallDate != null`, alert count, score |
 | **Scan → Review** | `ingest(...)`, then `confirmInvoice` / `discardInvoice` / `askSupplier` | See §7 |
 | **Suppliers** | `suppliers(id)` | Sorted by next due date. Badge from `risk` (`high` red, `medium` amber). Search is client-side |
-| **Supplier ledger** | `ledger(id, sid)` | Timeline from `entries` (bills +, payments/credit notes −) with running `balance`. Buttons: Pay (§9), Request credit note (via `chat`), Call |
-| **Alerts** | `alerts(id)`, `resolveAlert`, `confirmPayee` | One line per alert (`messageEn`/`messageHi`). `confirm_payee` alerts get a Confirm button → `confirmPayee(id, alert.paymentId, ConfirmPayeeIn(alert.supplierId))` |
+| **Supplier ledger** | `ledger(id, sid)` | Timeline from `entries` (bills +, payments/credit notes −) with running `balance`. Buttons: Pay (§9), **Request credit note** → `requestCreditNote(id, invoiceId, ...)` (one tap), Call. Show a **Confirm?** chip on any payment whose match is in `pendingMatches` → `confirmMatch` |
+| **Alerts** | `alerts(id)`, `resolveAlert`, `confirmPayee`, `requestCreditNote` | One line per alert (`messageEn`/`messageHi`). `confirm_payee` alerts get a Confirm button → `confirmPayee(id, alert.paymentId, ConfirmPayeeIn(alert.supplierId))`. `missing_credit_note` alerts get **Request credit note** → `requestCreditNote(id, alert.invoiceId, CreditNoteRequestIn(amount))`. `supplier_risk` means the bill is from a cancelled or non-filing supplier |
 | **IMS** (only if `gstScheme == "regular"`) | `ims(id, "2026-10")`, `overrideIms`, `approveAllIms` | Row shows suggested Accept / Reject / Pending and the reason. After "Approve all", show the returned note: it saves in Hisaab only |
-| **Cash & credit** | `forecast`, `score`, then consent → `creditOffer` → `acceptOffer` | See §10 |
+| **Cash & credit** | `forecast`, `score`, `setCashBalance`, then consent → `creditOffer` → `acceptOffer` | See §10. Offer a **"Set today's balance"** field: the forecast starts from `cashBalance` (also available in `Home`) |
 | **Soundbox mode** | `voice`, `events` | See §11 |
 | **CA export** | `register(id, month)` | Save the CSV and share it with an intent |
 
@@ -276,7 +289,7 @@ Treat `creditOffer` returning `eligible = false` (HTTP 200) as a normal state: s
 3. **Review screen** from the response:
    - Show `invoice` fields in editable inputs. **Highlight each name in `lowConfidenceFields`** (the server is unsure) and show a
      one-line explanation for each `issues` entry; for an issue with `lineIndex`, highlight that line item.
-   - If `duplicate != null`, lead with it: *"This bill was already filed on 12 Oct and paid on 12 Oct"* and offer three buttons:
+   - If `duplicate != null`, lead with it: *"This bill was already filed on 12 Oct and you paid ₹{duplicate.amount} on 12 Oct"* (quote `duplicate.amount`, the earlier bill's amount, not the new bill's total) and offer three buttons:
      **Duplicate, ignore** → `discardInvoice`; **It's a new bill** → `confirmInvoice`; **Ask supplier** → `askSupplier`.
    - Otherwise the buttons are **Confirm** (send edits as `corrections`) and **Discard**.
    - Correctable fields: `invoice_no`, `invoice_date`, `due_date`, `grand_total`, `taxable_total`, `tax_total`.
@@ -409,6 +422,8 @@ lifecycleScope.launch {
 
 Use Android's built-in `TextToSpeech` (locale `hi-IN`) for these short lines; they are not synthesized by the server.
 Trigger one on stage with `POST /demo/simulate-customer-payment {"merchant_id":1,"amount":2500}`.
+
+The feed also carries **proactive** announcements from the scheduler, such as *"Sharma Traders ka bill kal due hai, 42 hazaar rupaye."*. Fire one on stage with `POST /demo/run-due-reminders?on=2026-11-03`.
 
 ## 12. App state and the merchant switcher
 

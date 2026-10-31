@@ -4,7 +4,7 @@ from typing import Protocol
 
 class ChatPort(Protocol):
     def complete(self, messages: list[dict], tools: list[dict] | None = None, temperature: float = 0.2,
-                 max_tokens: int = 2048, reasoning: bool = False) -> dict: ...
+                 max_tokens: int = 2048, reasoning: bool = False, tool_choice: str | None = None) -> dict: ...
 
 
 class DocAIPort(Protocol):

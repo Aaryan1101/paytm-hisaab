@@ -99,7 +99,8 @@ def test_router_first_runs_tool_without_asking_llm_to_choose(seeded, Agent):
     s, ctx = seeded
     chat = FakeChat([text(DUES_REPLY)])
     r = Agent(chat, router_first=True).respond(make_ctx(s, ctx.ramesh), "Is hafte kitna dena hai?", "whatsapp")
-    assert len(chat.calls) == 1 and chat.calls[0]["tools"] is None and r.source == "router"
+    # one call, and it only writes: tools are declared (Sarvam requires that with tool results) but calling them is forbidden
+    assert len(chat.calls) == 1 and chat.calls[0]["tool_choice"] == "none" and chat.calls[0]["tools"] and r.source == "router"
 
 
 def test_router_first_falls_back_to_template_when_phrasing_fails(seeded, Agent):
@@ -168,3 +169,76 @@ def test_distributor_router_path(seeded, Agent):
     chat = FakeChat([text("Overdue retailers dikha raha hoon.")])
     r = Agent(chat, router_first=True).respond(make_ctx(s, ctx.vikas), "kaun kitna dena hai", "app")
     assert r.traces[0].name == "get_receivables"
+
+
+# ---- Sarvam's own rule, found against the real API: tool results are rejected unless the tools are declared
+class StrictChat(FakeChat):
+    def complete(self, messages, tools=None, **kw):
+        if any(m.get("role") == "tool" for m in messages) and not tools:
+            raise RuntimeError("400: Tool messages found but no tools provided")
+        return super().complete(messages, tools, **kw)
+
+
+def test_router_phrasing_declares_tools_so_sarvam_accepts_it(seeded, Agent):
+    s, ctx = seeded
+    r = Agent(StrictChat([text(DUES_REPLY)]), router_first=True).respond(make_ctx(s, ctx.ramesh), "Is hafte kitna dena hai?", "whatsapp")
+    assert r.source == "router" and r.text == DUES_REPLY   # the model phrased it; the template fallback was not needed
+
+
+def test_phrasing_step_cannot_call_tools(seeded, Agent):
+    s, ctx = seeded
+    chat = StrictChat([text(DUES_REPLY)])
+    Agent(chat, router_first=True).respond(make_ctx(s, ctx.ramesh), "Is hafte kitna dena hai?", "whatsapp")
+    assert chat.calls[0]["tool_choice"] == "none"
+
+
+# ---- facts the user tells us must be recorded, even if the model answers a different question (found with the live eval)
+def test_model_that_ignores_a_cash_entry_is_overridden(seeded, Agent):
+    s, ctx = seeded
+    n = len(s.exec(select(PaymentOut).where(PaymentOut.confirmed == False)).all())  # noqa: E712
+    chat = FakeChat([tool_call("get_dues", {"period": "week"}), text("Is hafte ₹1,12,400 dena hai."), text("Agarwal Dairy ko ₹3,000 cash likh liya. Confirm karein?")])
+    r = Agent(chat).respond(make_ctx(s, ctx.ramesh), "Agarwal dairy ko teen hazaar cash diye", "whatsapp")
+    assert r.traces[-1].name == "log_cash_payment" and r.traces[-1].result["status"] == "needs_confirmation"
+    assert r.traces[-1].result["amount"] == 3000
+    assert len(s.exec(select(PaymentOut).where(PaymentOut.confirmed == False)).all()) == n + 1  # noqa: E712
+
+
+def test_model_that_ignores_a_stated_balance_is_overridden(seeded, Agent):
+    s, ctx = seeded
+    chat = FakeChat([tool_call("get_dues", {"period": "week"}), text("Is hafte ₹1,12,400 dena hai."), text("Theek hai, balance ₹40,000 note kar liya.")])
+    r = Agent(chat).respond(make_ctx(s, ctx.ramesh), "mere paas 40000 cash hai", "whatsapp")
+    assert r.traces[-1].name == "set_cash_balance"
+    s.refresh(ctx.ramesh)
+    assert ctx.ramesh.opening_balance == 40_000
+
+
+def test_a_correct_cash_entry_is_not_run_twice(seeded, Agent):
+    s, ctx = seeded
+    chat = FakeChat([tool_call("log_cash_payment", {"supplier": "Agarwal dairy", "amount": 3000}), text("Agarwal Dairy ko ₹3,000 cash likh liya. Confirm karein?")])
+    r = Agent(chat).respond(make_ctx(s, ctx.ramesh), "Agarwal dairy ko teen hazaar cash diye", "whatsapp")
+    assert [t.name for t in r.traces] == ["log_cash_payment"]
+    assert len(s.exec(select(PaymentOut).where(PaymentOut.confirmed == False)).all()) == 1  # noqa: E712
+
+
+def test_read_only_questions_are_not_overridden_by_the_router(seeded, Agent):
+    """Only record-this phrases force a tool. If the model picks a different read tool the answer stands."""
+    s, ctx = seeded
+    chat = FakeChat([tool_call("get_supplier_ledger", {"supplier": "Sharma"}), text("Sharma Traders ka ₹73,800 baaki hai.")])
+    r = Agent(chat).respond(make_ctx(s, ctx.ramesh), "Sharma ko kitna dena hai?", "whatsapp")
+    assert [t.name for t in r.traces] == ["get_supplier_ledger"] and r.source == "llm"
+
+
+def test_model_that_drops_the_supplier_scope_is_overridden(seeded, Agent):
+    s, ctx = seeded
+    chat = FakeChat([tool_call("get_dues", {"period": "week"}), text("Is hafte 5 suppliers ko ₹1,12,400 dena hai."),
+                     text("Sharma Traders ko ₹42,300 dena hai.")])
+    r = Agent(chat).respond(make_ctx(s, ctx.ramesh), "Sharma ko kitna dena hai?", "whatsapp")
+    assert r.traces[-1].name == "get_dues" and r.traces[-1].arguments.get("supplier") == "sharma"
+    assert r.traces[-1].result["total"] == 42_300 and "42,300" in r.text
+
+
+def test_a_correctly_scoped_call_is_left_alone(seeded, Agent):
+    s, ctx = seeded
+    chat = FakeChat([tool_call("get_dues", {"period": "week", "supplier": "Sharma"}), text("Sharma Traders ko ₹42,300 dena hai.")])
+    r = Agent(chat).respond(make_ctx(s, ctx.ramesh), "Sharma ko kitna dena hai?", "whatsapp")
+    assert len(r.traces) == 1 and r.source == "llm"

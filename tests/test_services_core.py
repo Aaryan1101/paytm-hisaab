@@ -129,3 +129,21 @@ def test_s5_forecast_shortfall_on_thursday(seeded):
 def test_neha_has_no_shortfall(seeded):
     s, ctx = seeded
     assert forecast_service.get_forecast(s, ctx.neha.id, TODAY).shortfall_amount == 0
+
+
+# ---- regression: an arrived credit note must keep the bill closed on every later reconcile
+def test_received_credit_note_survives_repeated_reconciles(seeded):
+    from app.models import CreditNote
+    s, ctx = seeded
+    note = s.exec(select(CreditNote)).first()
+    note.status = "received"
+    s.add(note)
+    s.flush()
+    inv = s.exec(select(InvoiceRow).where(InvoiceRow.invoice_no == "ST-2250")).one()
+    for _ in range(3):
+        reconcile_service.reconcile_merchant(s, ctx.ramesh.id)
+        s.refresh(inv)
+        assert inv.status == "paid" and inv.amount_settled == 42_300
+        assert alert_service.list_alerts(s, ctx.ramesh.id, "missing_credit_note") == []
+    s.refresh(note)
+    assert note.status == "applied"

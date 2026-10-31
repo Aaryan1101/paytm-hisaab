@@ -64,6 +64,11 @@ def _credit(r: dict, hi: bool, voice: bool) -> str:
             else f"You have a credit offer of up to {amt} for {r['tenure_days']} days. Give consent in the app to take it.")
 
 
+def _cash_balance(r: dict, hi: bool, voice: bool) -> str:
+    return (f"Theek hai, aapka balance {r['cash_balance_display']} note kar liya. Ab forecast isi se chalega." if hi
+            else f"Noted: your balance is {r['cash_balance_display']}. The forecast now starts from it.")
+
+
 def _alerts(r: dict, hi: bool, voice: bool) -> str:
     if r["count"] == 0:
         return "Koi alert nahi hai." if hi else "No open alerts."
@@ -104,6 +109,6 @@ def _reminders(r: dict, hi: bool, voice: bool) -> str:
 
 
 _RENDERERS = {"get_dues": _dues, "forecast_cash": _forecast, "get_supplier_ledger": _ledger, "get_hisaab_score": _score,
-              "get_credit_offer": _credit, "list_alerts": _alerts, "log_cash_payment": _cash, "draft_payment": _draft,
+              "get_credit_offer": _credit, "set_cash_balance": _cash_balance, "list_alerts": _alerts, "log_cash_payment": _cash, "draft_payment": _draft,
               "export_purchase_register": _export, "get_receivables": _receivables, "ims_suggestions": _ims,
               "draft_reminders": _reminders}

@@ -45,7 +45,7 @@ def match_settlements(ctx: ToolContext) -> dict:
     settlement_service.reconcile_distributor(ctx.session, ctx.merchant_id)
     rows = distributor_service.settlements(ctx.session, ctx.merchant_id)[:10]
     return {"receipts": [{"payer": r.payer_name, "gross": r.gross, "gross_display": inr(r.gross), "mdr": r.mdr,
-                          "mdr_display": inr(r.mdr), "net_display": inr(r.net), "matched": [m[0] for m in r.matched],
+                          "mdr_display": inr(r.mdr), "net_display": inr(r.net), "matched": [m.invoice_no for m in r.matched],
                           "unmatched": not r.matched} for r in rows]}
 
 

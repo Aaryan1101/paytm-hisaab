@@ -45,7 +45,7 @@ def simulate_payment(session: Session, payer_id: int, supplier_name: str = "Shar
     settlement_service.reconcile_distributor(session, dist_id)
     col = session.exec(select(CollectionIn).where(CollectionIn.utr == pay.utr, CollectionIn.merchant_id == dist_id)).one()
     rows = distributor_service.settlements(session, dist_id)
-    matched = next(r.matched for r in rows if r.collection_id == col.id)
+    matched = [(m.invoice_no, m.amount) for m in next(r.matched for r in rows if r.collection_id == col.id)]
     message_service.push_event(session, dist_id, f"{_inr(col.amount)} prapt hue")
     return SimulatedPayment(col.amount, col.mdr_amount, col.net_amount, matched, before,
                             _reliability(session, dist_id, payer_id, today))

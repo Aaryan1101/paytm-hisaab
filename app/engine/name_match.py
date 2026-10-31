@@ -15,3 +15,13 @@ def _tokens(name: str) -> list[str]:
 
 def similarity(a: str, b: str) -> float:
     return fuzz.token_set_ratio(" ".join(_tokens(a)), " ".join(_tokens(b)))
+
+
+SAME_PARTY_MIN = 90.0
+
+
+def same_party(a: str, b: str) -> bool:
+    """Are these two spellings of one business name the same business? ("SHARMA TRADERS" vs "Sharma Traders", yes;
+    "Sharma Traders" vs "Sharma Textiles", no.) Stricter than `similarity`, which is meant for finding candidates."""
+    ta, tb = " ".join(sorted(_tokens(a))), " ".join(sorted(_tokens(b)))
+    return bool(ta) and fuzz.ratio(ta, tb) >= SAME_PARTY_MIN

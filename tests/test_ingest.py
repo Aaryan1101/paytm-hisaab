@@ -139,3 +139,35 @@ def test_media_store_unique_names(tmp_path):
     m = MediaStore(str(tmp_path), "http://h/")
     a, b = m.save(b"1", "wav", "audio"), m.save(b"2", ".wav", "audio")
     assert a.path != b.path and a.url.startswith("http://h/media/audio/") and a.path.read_bytes() == b"1"
+
+
+# ---- found by running real Document AI: bills spell names differently from the ledger
+def test_duplicate_found_when_the_bill_prints_the_name_in_capitals(seeded):
+    s, ctx = seeded
+    raw = {**s1_bill(ctx.vikas.gstin), "supplier_name": "SHARMA TRADERS"}
+    r = ingest(s, ctx, raw)
+    assert r.duplicate and r.duplicate.invoice_no == "ST-2291" and any(i.code == "possible_duplicate" for i in r.issues)
+
+
+def test_duplicate_found_even_when_the_bills_gstin_is_not_the_one_on_file(seeded):
+    s, ctx = seeded
+    from app.engine import gstin
+    raw = {**s1_bill(gstin.make("09", "ABCPS1234K")), "supplier_name": "SHARMA TRADERS"}
+    r = ingest(s, ctx, raw)
+    assert r.duplicate and s.get(InvoiceRow, r.invoice_id).supplier_id == ctx.ramesh_suppliers["Sharma Traders"].id
+
+
+def test_same_invoice_number_from_a_different_supplier_is_not_a_duplicate(seeded):
+    s, ctx = seeded
+    raw = {**s1_bill(ctx.ramesh_suppliers["Gupta Oil Mills"].gstin), "supplier_name": "Gupta Oil Mills"}   # also numbered ST-2291
+    r = ingest(s, ctx, raw)
+    assert r.duplicate is None and not any(i.code == "possible_duplicate" for i in r.issues)
+
+
+def test_tax_printed_only_in_the_totals_does_not_raise_line_warnings(seeded):
+    s, ctx = seeded
+    raw = {**s1_bill(ctx.vikas.gstin), "invoice_no": "ST-9100", "invoice_date": "20/09/2026", "line_items": [
+        {"description": "Biscuits Family Pack", "hsn": "1905", "qty": 100, "unit": "pkt", "rate": 40, "taxable_value": 4000, "gst_rate": 5},
+        {"description": "Soap 100g", "hsn": "3401", "qty": 200, "unit": "pc", "rate": 38, "taxable_value": 7600, "gst_rate": 5}],
+        "taxable_total": 11600, "tax_total": 580, "grand_total": 12180}
+    assert ingest(s, ctx, raw).issues == []

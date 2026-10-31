@@ -455,3 +455,15 @@ def test_webhook_status_only_payload_is_fine(wa_api):
     c = wa_api[0]
     r = post_signed(c, {"entry": [{"changes": [{"value": {"statuses": [{"id": "s"}]}}]}]})
     assert r.status_code == 200 and r.json() == {"received": 0}
+
+
+# ---- the card speaks about the original payment and the ledger's name for the supplier
+def test_duplicate_card_quotes_what_was_actually_paid_and_the_ledger_name(api):
+    _, _, ctx, _ = api
+    raw = {**s1_bill(ctx.vikas.gstin), "supplier_name": "SHARMA TRADERS", "grand_total": 17_535.0, "taxable_total": 16_700.0,
+           "tax_total": 835.0, "line_items": [{"description": "x", "hsn": "1905", "qty": 1, "rate": 16700, "taxable_value": 16700,
+                                               "gst_rate": 5, "cgst": 417.5, "sgst": 417.5}]}
+    body, pending = bill_cards.render(ingest_result(api, raw))
+    assert "aur aapne ₹18,640 pay kar diya hai" in body and "₹17,535" in body   # paid 18,640 on 12 Oct; this copy says 17,535
+    assert body.splitlines()[1].startswith("Sharma Traders · Inv #ST-2291")
+    assert pending.options[2].title == "Sharma se poochho"

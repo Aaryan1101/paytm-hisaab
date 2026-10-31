@@ -48,6 +48,7 @@ router also recognises:
 | "koi alert hai?" | Open alerts |
 | "Agarwal dairy ko teen hazaar cash diye" | Logs a **pending** cash entry and asks you to confirm |
 | "Sharma ko 42300 pay kar do" | Prepares a payment **draft** and asks you to confirm. It is never sent without the tap |
+| "mere paas 40000 cash hai" | Records today's balance; the cash forecast starts from it |
 | "CA ke liye report bhejo" | Purchase register link (CSV) |
 | (Neha) "IMS mein kya karna hai" | IMS accept / reject / pending suggestions |
 | (Vikas) "kaun kitna dena hai", "reminder bhejo" | Receivables, and drafted reminders (not sent until asked) |
@@ -158,13 +159,39 @@ WhatsApp client (no network).
   If conversion or upload fails, the **text reply has already been delivered**; only the voice note is skipped.
 - Replies are kept to about two sentences, with long numbers left in the text.
 
-## 6. The 24-hour window (important for reminders)
+## 6. Proactive messages (due-date reminders and the weekly digest)
+
+Two messages are sent without the merchant asking:
+
+- **Bill due tomorrow**: *"Sharma Traders ka bill kal due hai, ₹42,300 (ST-2302)."* One message per supplier, plus a matching
+  **Soundbox announcement** in the app (`GET /merchants/{id}/events`).
+- **Weekly payables digest** (Mondays): the same breakdown as asking "Is hafte kitna dena hai?", once per ISO week, only if something is owed.
+
+They are sent by a small background scheduler, off by default:
+
+```
+SCHEDULER_ENABLED=true     # start the loop with the server
+SCHEDULER_INTERVAL_S=900   # how often it looks (every 15 minutes)
+SCHEDULER_HOUR=9           # daily jobs wait until this local hour
+```
+
+Every send is recorded (table `notification_log`), so running the loop often, or running a job by hand, never messages anyone twice.
+To try them on demand, pretend it is the day before a due date:
+
+```bash
+curl -X POST 'localhost:8000/demo/run-due-reminders?on=2026-11-03'   # Sharma's ST-2302 is due 4 Nov
+curl -X POST 'localhost:8000/demo/run-weekly-digest?on=2026-11-02'   # Monday
+```
+
+Both are subject to the 24-hour rule below.
+
+## 6b. The 24-hour window (important for reminders)
 
 WhatsApp only allows free-form messages within **24 hours of the user's last message**. Outside it, only **pre-approved
 templates** are allowed.
 
 - Everything the bot sends in reply to a user is inside the window.
-- **Proactive** messages (distributor reminders to retailers, "bill due tomorrow") are free-form text in this build, so they only
+- **Proactive** messages (distributor reminders to retailers, "bill due tomorrow", the weekly digest) are free-form text in this build, so they only
   arrive if the recipient messaged the bot in the last 24 hours. **Approved-template sending is not implemented.**
 - For the demo: have each demo phone send the bot a message first (any "hi"), and say on the slide that production uses approved
   utility templates.

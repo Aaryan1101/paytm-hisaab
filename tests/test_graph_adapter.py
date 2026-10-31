@@ -104,3 +104,16 @@ def test_turn_trace_totals_and_serialisation():
     d = t.to_dict()
     assert d["total_tokens"] == 15 and d["total_ms"] >= 128.5 and [s["kind"] for s in d["steps"]] == ["llm", "tool", "llm"]
     assert json.dumps(d)
+
+
+def test_bind_tools_forwards_tool_choice_to_the_port():
+    chat = FakeChat([text("ok")])
+    spec = [{"type": "function", "function": {"name": "get_dues", "description": "d", "parameters": {"type": "object", "properties": {}}}}]
+    HisaabChatModel(port=chat).bind_tools(spec, tool_choice="none").invoke([HumanMessage("hi")])
+    assert chat.calls[0]["tool_choice"] == "none" and chat.calls[0]["tools"]
+
+
+def test_tool_choice_is_omitted_when_not_given():
+    chat = FakeChat([text("ok")])
+    HisaabChatModel(port=chat).invoke([HumanMessage("hi")])
+    assert chat.calls[0]["tool_choice"] is None

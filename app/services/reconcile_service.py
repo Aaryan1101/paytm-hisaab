@@ -31,7 +31,7 @@ def reconcile_merchant(session: Session, merchant_id: int) -> ReconcileResult:
                    pay_applied.get(p.id, 0.0)) for p in payments],
         [SupplierRef(s.id, s.name, tuple(s.aliases), s.payee_vpa) for s in suppliers],
         [CreditNoteIn(n.id, n.supplier_id, n.amount, n.status, n.against_invoice_id) for n in notes
-         if n.status in ("expected", "received")],
+         if n.status in ("expected", "received", "applied")],  # applied notes are re-applied on every run
     )
     _persist(session, merchant_id, invoices, notes, inv_applied, result)
     return result

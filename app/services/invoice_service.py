@@ -1,4 +1,5 @@
 """What happens to a bill after it has been read: confirm with corrections, or discard."""
+from dataclasses import dataclass
 from datetime import date
 
 from sqlmodel import Session, select
@@ -50,19 +51,31 @@ def discard_invoice(session: Session, merchant_id: int, invoice_id: int) -> Invo
     return inv
 
 
-def extraction_accuracy(session: Session, merchant_id: int | None = None) -> float | None:
-    """Share of raw-extracted key fields the merchant left unchanged (the pitch accuracy metric)."""
+@dataclass(frozen=True)
+class AccuracyStats:
+    accuracy: float | None  # share of key fields the merchant left unchanged; None until a read bill has been confirmed
+    bills: int
+    fields: int
+
+
+def extraction_stats(session: Session, merchant_id: int | None = None) -> AccuracyStats:
+    """Raw extraction vs what the merchant confirmed: the accuracy number for the pitch slide."""
     q = select(InvoiceRow).where(InvoiceRow.confirmed == True)  # noqa: E712
     if merchant_id:
         q = q.where(InvoiceRow.merchant_id == merchant_id)
-    same = total = 0
+    same = total = bills = 0
     for inv in session.exec(q).all():
         if not inv.raw_json:
             continue  # seeded or hand-entered bills have no raw extraction to compare
+        bills += 1
         for field in ("invoice_no", "grand_total", "taxable_total", "tax_total"):
             raw = inv.raw_json.get(field)
             if raw is None:
                 continue
             total += 1
             same += abs(float(raw) - float(getattr(inv, field))) < 0.005 if field != "invoice_no" else raw == inv.invoice_no
-    return same / total if total else None
+    return AccuracyStats(same / total if total else None, bills, total)
+
+
+def extraction_accuracy(session: Session, merchant_id: int | None = None) -> float | None:
+    return extraction_stats(session, merchant_id).accuracy

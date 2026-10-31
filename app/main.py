@@ -6,11 +6,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routers import agent, demo, distributors, invoices, merchants, payments, webhooks
+from app.api.routers import agent, demo, distributors, invoices, merchants, metrics, payments, webhooks
 from app.config import settings
 from app.bootstrap import ensure_seeded
 from app.ai.graph.tracing import configure_langsmith
+import asyncio
+
+from sqlmodel import Session
+
+from app import clock
 from app.container import Container, build_container
+from app.jobs.scheduler import run_forever, tick
 from app.db import engine
 from app.services.errors import ServiceError
 
@@ -23,7 +29,15 @@ def create_app(container: Container | None = None) -> FastAPI:
             app.state.container = build_container(settings)
         if settings.auto_seed:
             ensure_seeded(engine)
+        stop, task = asyncio.Event(), None
+        if settings.scheduler_enabled:
+            task = asyncio.create_task(run_forever(
+                lambda: tick(lambda: Session(engine), app.state.container, clock.now(), settings.scheduler_hour),
+                settings.scheduler_interval_s, stop))
         yield
+        if task is not None:
+            stop.set()
+            await task
 
     app = FastAPI(title="Hisaab Agent", lifespan=lifespan)
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
@@ -38,7 +52,7 @@ def create_app(container: Container | None = None) -> FastAPI:
     def health():
         return {"ok": True}
 
-    for r in (invoices.router, merchants.router, payments.router, agent.router, distributors.router, demo.router, webhooks.router):
+    for r in (invoices.router, merchants.router, payments.router, agent.router, distributors.router, demo.router, metrics.router, webhooks.router):
         app.include_router(r)
     # Only voice replies and reports are public; bill images stay private on disk.
     media_root = container.media.root if container else Path(settings.media_dir)  # same dir the container writes to

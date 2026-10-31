@@ -57,9 +57,9 @@ class Agent:
         except Exception:
             log.exception("LLM loop failed")
             reply = None
-        if reply is not None and (reply.traces or route is None):
+        if reply is not None and (reply.traces or route is None) and not router.needs_router(route, [(t.name, t.arguments) for t in reply.traces]):
             return reply
-        # LLM failed, or answered a data question without calling any tool: don't trust it for numbers
+        # LLM failed, answered a data question without a tool, or dropped what the user asked us to record or scope
         return (self._answer_via_route(ctx, route, messages, channel, language, text, trace) if route
                 else AgentReply(APOLOGY.get(language, APOLOGY["hi"]), source="apology"))
 
@@ -101,7 +101,8 @@ class Agent:
             {"role": "tool", "tool_call_id": call_id, "content": json.dumps(result, ensure_ascii=False, default=str)}]
         try:
             with trace.timed("llm", "phrase"):
-                text = (self._chat.complete(phrased).get("content") or "").strip()
+                # Sarvam refuses tool results without declared tools; tool_choice="none" keeps this a pure writing step
+                text = (self._chat.complete(phrased, tools=registry.tool_specs(ctx.role), tool_choice="none").get("content") or "").strip()
         except Exception:
             text = ""
         if text and grounding.is_grounded(text, [result], user_text):

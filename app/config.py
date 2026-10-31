@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     langsmith_tracing: bool = False  # send every agent turn to LangSmith (needs langsmith_api_key)
     langsmith_api_key: str = ""
     langsmith_project: str = "hisaab-agent"
+    scheduler_enabled: bool = False  # run due-date reminders and the weekly digest in the background
+    scheduler_interval_s: int = 900
+    scheduler_hour: int = 9  # local hour after which the daily jobs may run
     agent_router_first: bool = False  # use the keyword router as the primary path (stage safety net)
     media_dir: str = ".media"
     public_base_url: str = "http://localhost:8000"

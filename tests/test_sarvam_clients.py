@@ -226,3 +226,12 @@ def test_sarvam_wires_all_clients_with_configured_models(tmp_path):
     s = Sarvam(Settings(sarvam_api_key="k", sarvam_cache_dir=str(tmp_path), sarvam_chat_model="m1", sarvam_stt_model="m2",
                         sarvam_tts_model="m3", sarvam_tts_speaker="spk"))
     assert (s.chat._model, s.stt._model, s.tts._model, s.tts._speaker) == ("m1", "m2", "m3", "spk")
+
+
+def test_chat_tool_choice_defaults_to_auto_and_can_forbid_calls(tmp_path):
+    seen = []
+    tools = [{"type": "function", "function": {"name": "t"}}]
+    c = chat_client(tmp_path, seen=seen)
+    c.complete([{"role": "user", "content": "a"}], tools=tools)
+    c.complete([{"role": "user", "content": "b"}], tools=tools, tool_choice="none")
+    assert [b["tool_choice"] for b in seen] == ["auto", "none"]

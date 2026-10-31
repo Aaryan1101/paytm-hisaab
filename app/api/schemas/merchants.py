@@ -151,9 +151,35 @@ class CreditOfferOut(BaseModel):
 class HomeOut(BaseModel):
     merchant: MerchantOut
     owe_this_week: float
+    cash_balance: float
     suppliers_due_this_week: int
     alert_count: int
     score: int
     shortfall_date: date | None
     shortfall_amount: float
     forecast: list[ForecastDayOut]
+
+
+class PendingMatchOut(BaseModel):
+    match_id: int
+    invoice_id: int
+    invoice_no: str
+    counterparty: str
+    amount: float
+    method: str
+    confidence: float
+    when: datetime
+
+
+class CashBalanceIn(BaseModel):
+    amount: float
+
+
+class CashBalanceOut(BaseModel):
+    cash_balance: float
+
+
+class ExtractionAccuracyOut(BaseModel):
+    accuracy: float | None
+    bills: int
+    fields: int

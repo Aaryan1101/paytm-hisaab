@@ -8,8 +8,8 @@ class FakeChat:
     def __init__(self, script):
         self.script, self.calls = script, []
 
-    def complete(self, messages, tools=None, temperature=0.2, max_tokens=2048, reasoning=False):
-        self.calls.append({"messages": [dict(m) for m in messages], "tools": tools})
+    def complete(self, messages, tools=None, temperature=0.2, max_tokens=2048, reasoning=False, tool_choice=None):
+        self.calls.append({"messages": [dict(m) for m in messages], "tools": tools, "tool_choice": tool_choice})
         if callable(self.script):
             return self.script(messages, tools)
         if not self.script:

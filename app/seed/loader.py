@@ -44,14 +44,16 @@ def seed_all(session: Session) -> SeedContext:
     collections.generate_expenses(session, rng, ctx.ramesh, HISTORY_START, today)
 
     neha_cat = {n: catalog.NEHA_CATEGORIES[i % len(catalog.NEHA_CATEGORIES)] for i, n in enumerate(ctx.neha_suppliers)}
-    history.generate_history(session, rng, ctx.neha, ctx.neha_suppliers, neha_cat, HISTORY_START, date(2026, 10, 24),
-                             today, (20, 30), state_by_supplier={n: catalog.NEHA_OUT_OF_STATE.get(n, "09") for n in ctx.neha_suppliers})
-    scenarios.ensure_cancelled_supplier_bill(session, rng, ctx)
-    collections.generate_collections(session, rng, ctx.neha, HISTORY_START, today)
-    collections.generate_expenses(session, rng, ctx.neha, HISTORY_START, today)
-    ims_seed.seed_ims(session, rng, ctx)
+    # Each persona gets its own random stream, so tuning one persona's data never shifts another's.
+    neha_rng, retailer_rng = random.Random(SEED + 1), random.Random(SEED + 2)
+    history.generate_history(session, neha_rng, ctx.neha, ctx.neha_suppliers, neha_cat, HISTORY_START, date(2026, 10, 24),
+                             today, (9, 12), state_by_supplier={n: catalog.NEHA_OUT_OF_STATE.get(n, "09") for n in ctx.neha_suppliers})
+    scenarios.ensure_cancelled_supplier_bill(session, neha_rng, ctx)
+    collections.generate_collections(session, neha_rng, ctx.neha, HISTORY_START, today)
+    collections.generate_expenses(session, neha_rng, ctx.neha, HISTORY_START, today)
+    ims_seed.seed_ims(session, neha_rng, ctx)
 
-    retailers.seed_retailer_history(session, rng, ctx, today)
+    retailers.seed_retailer_history(session, retailer_rng, ctx, today)
     session.flush()
 
     for m in (ctx.ramesh, ctx.neha):

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from app.engine import gstin
+from app.engine.name_match import same_party
 from app.engine.hsn_rates import EFFECTIVE_FROM, allowed_rates
 from app.engine.issues import Issue
 from app.models.schemas import Invoice
@@ -67,10 +68,18 @@ def _check_line_maths(inv: Invoice) -> list[Issue]:
 
 
 def _check_tax_maths(inv: Invoice) -> list[Issue]:
+    """Per line when the bill prints tax on each line; otherwise (tax shown only in the totals block, which is common)
+    compare the document's total tax with what the lines' GST rates imply."""
+    rated = [(i, li) for i, li in enumerate(inv.line_items) if li.gst_rate is not None]
+    if rated and all(li.cgst + li.sgst + li.igst == 0 for _, li in rated):
+        expected = sum(li.taxable_value * li.gst_rate / 100 for _, li in rated)
+        tolerance = max(TOLERANCE, 0.5 * len(rated))  # each line's tax may be rounded on its own
+        if abs(expected - inv.tax_total) <= tolerance:
+            return []
+        return [Issue("tax_computed_wrong", "warn", f"Tax on the lines should total {expected:.2f}, bill shows {inv.tax_total:.2f}.",
+                      "Bill par tax ka total galat joda gaya hai.", field="tax_total")]
     out = []
-    for i, li in enumerate(inv.line_items):
-        if li.gst_rate is None:
-            continue
+    for i, li in rated:
         expected = li.taxable_value * li.gst_rate / 100
         if not _close(expected, li.cgst + li.sgst + li.igst):
             out.append(Issue("tax_computed_wrong", "warn",
@@ -102,15 +111,36 @@ def _check_grand_total(inv: Invoice) -> list[Issue]:
                   "Bill ka total match nahi karta.", field="grand_total")]
 
 
+def duplicate_issue(previous_no: str, previous_date) -> Issue:
+    return Issue("possible_duplicate", "high", f"Possible duplicate of invoice {previous_no} dated {previous_date}.",
+                 f"Yeh bill {previous_no} ({previous_date}) ka duplicate lag raha hai.", field="invoice_no")
+
+
 def _check_duplicate(inv: Invoice, previous: list[Invoice]) -> list[Issue]:
     window = timedelta(days=DUPLICATE_WINDOW_DAYS)
     for p in previous:
-        if p.supplier_name != inv.supplier_name:
+        if not _same_supplier(p, inv):
             continue
         same_no = p.invoice_no == inv.invoice_no
         same_amount_near = p.grand_total == inv.grand_total and abs(p.invoice_date - inv.invoice_date) <= window
         if same_no or same_amount_near:
-            return [Issue("possible_duplicate", "high",
-                          f"Possible duplicate of invoice {p.invoice_no} dated {p.invoice_date}.",
-                          f"Yeh bill {p.invoice_no} ({p.invoice_date}) ka duplicate lag raha hai.", field="invoice_no")]
+            return [duplicate_issue(p.invoice_no, p.invoice_date)]
     return []
+
+
+def supplier_status_issue(status: str) -> Issue | None:
+    """Supplier risk from the (mock) GSTIN registry: a cancelled or non-filing supplier puts input tax credit at risk."""
+    if status == "cancelled":
+        return Issue("supplier_risk", "high", "Supplier GSTIN is cancelled; input tax credit on this bill is at risk. Talk to the supplier.",
+                     "Supplier ka GSTIN cancel hai; is bill par input tax credit khatre mein hai. Supplier se baat karein.", field="supplier_gstin")
+    if status == "not_filing":
+        return Issue("supplier_risk", "warn", "Supplier is not filing GST returns; input tax credit on this bill may not be available.",
+                     "Supplier GST return nahi bhar raha; is bill par input tax credit na mile.", field="supplier_gstin")
+    return None
+
+
+def _same_supplier(a: Invoice, b: Invoice) -> bool:
+    """GSTIN identifies a supplier when both bills carry one; otherwise compare names the way a person would."""
+    if a.supplier_gstin and b.supplier_gstin and gstin.is_valid(a.supplier_gstin) and gstin.is_valid(b.supplier_gstin):
+        return a.supplier_gstin == b.supplier_gstin
+    return same_party(a.supplier_name, b.supplier_name)

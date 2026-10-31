@@ -284,6 +284,68 @@
         }
       }
     },
+    "/invoices/{invoice_id}/request-credit-note": {
+      "post": {
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Request Credit Note",
+        "description": "One-tap \"ask the supplier for a credit note\". Asking twice for the same bill returns the same request.",
+        "operationId": "request_credit_note_invoices__invoice_id__request_credit_note_post",
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditNoteRequestIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditNoteOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/merchants": {
       "get": {
         "tags": [
@@ -1143,6 +1205,155 @@
         }
       }
     },
+    "/merchants/{merchant_id}/matches/pending": {
+      "get": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Pending Matches",
+        "description": "Payment-to-bill matches the engine was less than 90% sure about: show each with a \"Confirm?\" button.",
+        "operationId": "pending_matches_merchants__merchant_id__matches_pending_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingMatchOut"
+                  },
+                  "title": "Response Pending Matches Merchants  Merchant Id  Matches Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/matches/{match_id}/confirm": {
+      "post": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Confirm Match",
+        "operationId": "confirm_match_merchants__merchant_id__matches__match_id__confirm_post",
+        "parameters": [
+          {
+            "name": "match_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Match Id"
+            }
+          },
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/merchants/{merchant_id}/cash-balance": {
+      "put": {
+        "tags": [
+          "merchants"
+        ],
+        "summary": "Set Cash Balance",
+        "description": "Tell us today's cash/bank balance; the cash forecast starts from it.",
+        "operationId": "set_cash_balance_merchants__merchant_id__cash_balance_put",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashBalanceIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashBalanceOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/payments/draft": {
       "post": {
         "tags": [
@@ -1623,6 +1834,7 @@
           "distributors"
         ],
         "summary": "Retailer",
+        "description": "Summary plus that retailer's bills, receipts and unanswered questions.",
         "operationId": "retailer_distributors__distributor_id__retailers__retailer_id__get",
         "parameters": [
           {
@@ -1650,7 +1862,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReceivableOut"
+                  "$ref": "#/components/schemas/RetailerDetailOut"
                 }
               }
             }
@@ -1697,6 +1909,202 @@
                     "$ref": "#/components/schemas/SettlementOut"
                   },
                   "title": "Response Settlements Distributors  Distributor Id  Settlements Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/queries": {
+      "get": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Queries",
+        "description": "Open retailer questions across all retailers. Answer one with POST /queries/{id}/answer.",
+        "operationId": "queries_distributors__distributor_id__queries_get",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenQueryOut"
+                  },
+                  "title": "Response Queries Distributors  Distributor Id  Queries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/matches/pending": {
+      "get": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Pending Matches",
+        "description": "Receipt-to-bill matches the engine was unsure about, for the \"Confirm a suggested match\" action.",
+        "operationId": "pending_matches_distributors__distributor_id__matches_pending_get",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingMatchOut"
+                  },
+                  "title": "Response Pending Matches Distributors  Distributor Id  Matches Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/matches/{match_id}/confirm": {
+      "post": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Confirm Match",
+        "operationId": "confirm_match_distributors__distributor_id__matches__match_id__confirm_post",
+        "parameters": [
+          {
+            "name": "match_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Match Id"
+            }
+          },
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/distributors/{distributor_id}/credit-notes": {
+      "post": {
+        "tags": [
+          "distributors"
+        ],
+        "summary": "Issue Credit Note",
+        "description": "Credit a retailer's bill. The retailer's ledger updates and they are notified.",
+        "operationId": "issue_credit_note_distributors__distributor_id__credit_notes_post",
+        "parameters": [
+          {
+            "name": "distributor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Distributor Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditNoteIssueIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditNoteIssuedOut"
                 }
               }
             }
@@ -1917,6 +2325,158 @@
         }
       }
     },
+    "/demo/run-due-reminders": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Run Due Reminders",
+        "description": "Send \"bill due tomorrow\" messages (and Soundbox announcements) now. `on` pretends today is that date, e.g. 2026-11-03.",
+        "operationId": "run_due_reminders_demo_run_due_reminders_post",
+        "parameters": [
+          {
+            "name": "on",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "On"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo/run-weekly-digest": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Run Weekly Digest",
+        "description": "Send the weekly payables digest now (once per ISO week per merchant).",
+        "operationId": "run_weekly_digest_demo_run_weekly_digest_post",
+        "parameters": [
+          {
+            "name": "on",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "On"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics/extraction-accuracy": {
+      "get": {
+        "tags": [
+          "metrics"
+        ],
+        "summary": "Extraction Accuracy",
+        "description": "The pitch-slide number: how often the merchant left the AI's key fields unchanged (invoice no., totals).",
+        "operationId": "extraction_accuracy_metrics_extraction_accuracy_get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionAccuracyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/whatsapp": {
       "get": {
         "tags": [
@@ -2085,6 +2645,32 @@
           "file"
         ],
         "title": "Body_voice_agent_voice_post"
+      },
+      "CashBalanceIn": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "CashBalanceIn"
+      },
+      "CashBalanceOut": {
+        "properties": {
+          "cash_balance": {
+            "type": "number",
+            "title": "Cash Balance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cash_balance"
+        ],
+        "title": "CashBalanceOut"
       },
       "CashIn": {
         "properties": {
@@ -2285,6 +2871,114 @@
           "expires_at"
         ],
         "title": "ConsentOut"
+      },
+      "CreditNoteIssueIn": {
+        "properties": {
+          "retailer_id": {
+            "type": "integer",
+            "title": "Retailer Id"
+          },
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retailer_id",
+          "invoice_id",
+          "amount"
+        ],
+        "title": "CreditNoteIssueIn"
+      },
+      "CreditNoteIssuedOut": {
+        "properties": {
+          "credit_note_id": {
+            "type": "integer",
+            "title": "Credit Note Id"
+          },
+          "invoice_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "credit_note_id",
+          "invoice_id",
+          "amount",
+          "status"
+        ],
+        "title": "CreditNoteIssuedOut"
+      },
+      "CreditNoteOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "invoice_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "invoice_id",
+          "amount",
+          "status"
+        ],
+        "title": "CreditNoteOut"
+      },
+      "CreditNoteRequestIn": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "CreditNoteRequestIn"
       },
       "CreditOfferOut": {
         "properties": {
@@ -2511,6 +3205,10 @@
               }
             ],
             "title": "Paid On"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
           }
         },
         "type": "object",
@@ -2518,7 +3216,8 @@
           "invoice_id",
           "invoice_no",
           "invoice_date",
-          "paid_on"
+          "paid_on",
+          "amount"
         ],
         "title": "DuplicateOut"
       },
@@ -2539,6 +3238,36 @@
           "text"
         ],
         "title": "EventOut"
+      },
+      "ExtractionAccuracyOut": {
+        "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
+          "bills": {
+            "type": "integer",
+            "title": "Bills"
+          },
+          "fields": {
+            "type": "integer",
+            "title": "Fields"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accuracy",
+          "bills",
+          "fields"
+        ],
+        "title": "ExtractionAccuracyOut"
       },
       "ForecastDayOut": {
         "properties": {
@@ -2653,6 +3382,10 @@
             "type": "number",
             "title": "Owe This Week"
           },
+          "cash_balance": {
+            "type": "number",
+            "title": "Cash Balance"
+          },
           "suppliers_due_this_week": {
             "type": "integer",
             "title": "Suppliers Due This Week"
@@ -2693,6 +3426,7 @@
         "required": [
           "merchant",
           "owe_this_week",
+          "cash_balance",
           "suppliers_due_this_week",
           "alert_count",
           "score",
@@ -2902,6 +3636,10 @@
               }
             ],
             "title": "Image Url"
+          },
+          "supplier_name": {
+            "type": "string",
+            "title": "Supplier Name"
           }
         },
         "type": "object",
@@ -2912,7 +3650,8 @@
           "field_confidence",
           "low_confidence_fields",
           "duplicate",
-          "image_url"
+          "image_url",
+          "supplier_name"
         ],
         "title": "IngestOut"
       },
@@ -3223,6 +3962,23 @@
         ],
         "title": "IssuedInvoiceOut"
       },
+      "JobRunOut": {
+        "properties": {
+          "sent": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sent"
+        ],
+        "title": "JobRunOut"
+      },
       "LedgerEntryOut": {
         "properties": {
           "day": {
@@ -3396,6 +4152,39 @@
         ],
         "title": "LineItem"
       },
+      "MatchedInvoiceOut": {
+        "properties": {
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "match_id": {
+            "type": "integer",
+            "title": "Match Id"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "title": "Confirmed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice_no",
+          "amount",
+          "match_id",
+          "confidence",
+          "confirmed"
+        ],
+        "title": "MatchedInvoiceOut"
+      },
       "MerchantOut": {
         "properties": {
           "id": {
@@ -3428,6 +4217,50 @@
           "language"
         ],
         "title": "MerchantOut"
+      },
+      "OpenQueryOut": {
+        "properties": {
+          "query_id": {
+            "type": "integer",
+            "title": "Query Id"
+          },
+          "retailer_id": {
+            "type": "integer",
+            "title": "Retailer Id"
+          },
+          "retailer_name": {
+            "type": "string",
+            "title": "Retailer Name"
+          },
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query_id",
+          "retailer_id",
+          "retailer_name",
+          "invoice_id",
+          "invoice_no",
+          "text",
+          "created_at"
+        ],
+        "title": "OpenQueryOut"
       },
       "OverrideIn": {
         "properties": {
@@ -3487,6 +4320,55 @@
           "supplier_id"
         ],
         "title": "PaymentRecordOut"
+      },
+      "PendingMatchOut": {
+        "properties": {
+          "match_id": {
+            "type": "integer",
+            "title": "Match Id"
+          },
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "counterparty": {
+            "type": "string",
+            "title": "Counterparty"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "when": {
+            "type": "string",
+            "format": "date-time",
+            "title": "When"
+          }
+        },
+        "type": "object",
+        "required": [
+          "match_id",
+          "invoice_id",
+          "invoice_no",
+          "counterparty",
+          "amount",
+          "method",
+          "confidence",
+          "when"
+        ],
+        "title": "PendingMatchOut"
       },
       "QueryOut": {
         "properties": {
@@ -3666,6 +4548,20 @@
             "type": "boolean",
             "title": "Send",
             "default": false
+          },
+          "texts": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Texts"
           }
         },
         "type": "object",
@@ -3691,6 +4587,140 @@
           "reminders"
         ],
         "title": "RemindersOut"
+      },
+      "RetailerDetailOut": {
+        "properties": {
+          "retailer_id": {
+            "type": "integer",
+            "title": "Retailer Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "outstanding": {
+            "type": "number",
+            "title": "Outstanding"
+          },
+          "overdue_amount": {
+            "type": "number",
+            "title": "Overdue Amount"
+          },
+          "days_overdue": {
+            "type": "integer",
+            "title": "Days Overdue"
+          },
+          "reliability": {
+            "type": "number",
+            "title": "Reliability"
+          },
+          "suggested_limit": {
+            "type": "number",
+            "title": "Suggested Limit"
+          },
+          "reason_en": {
+            "type": "string",
+            "title": "Reason En"
+          },
+          "reason_hi": {
+            "type": "string",
+            "title": "Reason Hi"
+          },
+          "invoices": {
+            "items": {
+              "$ref": "#/components/schemas/RetailerInvoiceOut"
+            },
+            "type": "array",
+            "title": "Invoices"
+          },
+          "receipts": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementOut"
+            },
+            "type": "array",
+            "title": "Receipts"
+          },
+          "open_queries": {
+            "items": {
+              "$ref": "#/components/schemas/OpenQueryOut"
+            },
+            "type": "array",
+            "title": "Open Queries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retailer_id",
+          "name",
+          "outstanding",
+          "overdue_amount",
+          "days_overdue",
+          "reliability",
+          "suggested_limit",
+          "reason_en",
+          "reason_hi",
+          "invoices",
+          "receipts",
+          "open_queries"
+        ],
+        "title": "RetailerDetailOut"
+      },
+      "RetailerInvoiceOut": {
+        "properties": {
+          "invoice_id": {
+            "type": "integer",
+            "title": "Invoice Id"
+          },
+          "invoice_no": {
+            "type": "string",
+            "title": "Invoice No"
+          },
+          "invoice_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Invoice Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "grand_total": {
+            "type": "number",
+            "title": "Grand Total"
+          },
+          "amount_settled": {
+            "type": "number",
+            "title": "Amount Settled"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invoice_id",
+          "invoice_no",
+          "invoice_date",
+          "due_date",
+          "grand_total",
+          "amount_settled",
+          "status",
+          "source"
+        ],
+        "title": "RetailerInvoiceOut"
       },
       "ScoreOut": {
         "properties": {
@@ -3732,6 +4762,10 @@
             "format": "date-time",
             "title": "Received At"
           },
+          "payer_id": {
+            "type": "integer",
+            "title": "Payer Id"
+          },
           "payer_name": {
             "type": "string",
             "title": "Payer Name"
@@ -3750,8 +4784,7 @@
           },
           "matched": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/MatchedInvoiceOut"
             },
             "type": "array",
             "title": "Matched"
@@ -3765,6 +4798,7 @@
         "required": [
           "collection_id",
           "received_at",
+          "payer_id",
           "payer_name",
           "gross",
           "mdr",

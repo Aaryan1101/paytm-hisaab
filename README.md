@@ -24,7 +24,7 @@ Confirm-before-act (bills, duplicates, cash entries, payments) is one LangGraph 
 
 ## Evals and tracing
 ```
-uv run python -m scripts.eval_agent                 # 16 demo phrases against real Sarvam: tool, args, figures, safety
+uv run python -m scripts.eval_agent                 # 18 demo phrases against real Sarvam: tool, args, figures, safety
 uv run python -m scripts.eval_agent --langsmith     # also uploads the cases as a LangSmith dataset
 SARVAM_CACHE_DIR=/tmp/cold uv run python -m scripts.eval_agent   # honest latency (the default cache hides it)
 ```

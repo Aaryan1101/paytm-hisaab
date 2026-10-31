@@ -3,7 +3,7 @@
 | Guide | Read it if you are… |
 |---|---|
 | [01 · Backend setup](01-backend-setup.md) | running the server, configuring `.env`, seeding/resetting demo data, running tests and evals, preparing the stage demo |
-| [02 · Web integration + full API reference](02-web-integration.md) | building the distributor dashboard, or looking up **any** endpoint (all 43 are documented with real examples) |
+| [02 · Web integration + full API reference](02-web-integration.md) | building the distributor dashboard, or looking up **any** endpoint (all 54 are documented with real examples) |
 | [03 · Android integration](03-android-integration.md) | building the merchant app: networking, models, every screen's calls, camera scan, voice / Soundbox mode |
 | [04 · WhatsApp integration](04-whatsapp-integration.md) | connecting Meta's WhatsApp Cloud API, testing the bot, troubleshooting |
 
